@@ -36,6 +36,7 @@ Al riavvio del server, lo stato utenti viene perso.
     │   ├── genres.js
     │   └── users.js
     └── public/
+        ├── index.html
         ├── books/
         │   ├── I tredici colpevoli.png
         │   ├── Intermezzo.png
@@ -62,11 +63,12 @@ Il progetto ha una architettura semplice client-server:
 
 1. `server/server.js` avvia Express e Socket.IO sulla porta `3000`.
 2. Express serve i file statici da `server/public`.
-3. La pagina mobile vive in `/mobile`.
-4. La dashboard vive in `/dashboard`.
-5. Le pagine NFC/conferma libro sono generate lato server da `renderNfcConfirmationPage()`.
-6. Socket.IO invia l'evento `update` a tutti i client quando cambia la collezione di un utente.
-7. I client ricaricano lo stato utenti tramite `GET /users`.
+3. La home vive in `/` e contiene link rapidi alle altre pagine.
+4. La pagina mobile vive in `/mobile`.
+5. La dashboard vive in `/dashboard`.
+6. Le pagine NFC/conferma libro sono generate lato server da `renderNfcConfirmationPage()`.
+7. Socket.IO invia l'evento `update` a tutti i client quando cambia la collezione di un utente.
+8. I client ricaricano lo stato utenti tramite `GET /users`.
 
 ## File server principale
 
@@ -116,6 +118,10 @@ Se il progetto cresce, conviene spostare la sorgente dati in `server/data/books.
 ## Rotte HTTP
 
 ### Pagine
+
+- `GET /`
+  - Serve `server/public/index.html` tramite static middleware.
+  - E una home con link rapidi a mobile, dashboard e conferme NFC.
 
 - `GET /mobile`
   - Serve `server/public/mobile/index.html`.
@@ -321,18 +327,80 @@ Questo rende il modello semplice: Socket.IO e un segnale, HTTP resta la sorgente
 Avvio server:
 
 ```bash
-node server/server.js
+npm start
 ```
 
 URL locali:
 
 ```text
+http://localhost:3000/
 http://localhost:3000/mobile
 http://localhost:3000/dashboard
 http://localhost:3000/nfc/book1
 http://localhost:3000/nfc/book2
 http://localhost:3000/nfc/book3
 ```
+
+## Test tra piu device / port forwarding
+
+Il server ascolta gia su:
+
+```js
+server.listen(3000, "0.0.0.0", () => {
+  console.log("Server running on port 3000");
+});
+```
+
+Questo significa che non e limitato a `localhost`: puo ricevere richieste da altri device
+se la porta `3000` viene esposta correttamente.
+
+### Stessa rete Wi-Fi
+
+1. Avvia il server:
+
+```bash
+npm start
+```
+
+2. Trova l'indirizzo IP locale del Mac.
+3. Da un altro device sulla stessa rete apri:
+
+```text
+http://IP_DEL_MAC:3000/
+http://IP_DEL_MAC:3000/mobile
+http://IP_DEL_MAC:3000/dashboard
+http://IP_DEL_MAC:3000/nfc/book1
+http://IP_DEL_MAC:3000/nfc/book2
+http://IP_DEL_MAC:3000/nfc/book3
+```
+
+Esempio:
+
+```text
+http://192.168.1.23:3000/
+```
+
+### Port forwarding dell'IDE
+
+Se usi un ambiente con Port Forwarding, esponi la porta:
+
+```text
+3000
+```
+
+Poi usa l'URL pubblico/forwarded generato dall'IDE al posto di `localhost`.
+Esempio:
+
+```text
+https://URL-FORWARDED/
+https://URL-FORWARDED/mobile
+https://URL-FORWARDED/dashboard
+https://URL-FORWARDED/nfc/book2
+```
+
+Per far funzionare bene mobile + NFC, apri prima `/mobile` sul device e registrati.
+Poi apri/scansiona una pagina `/nfc/bookX` dallo stesso browser/device, cosi il
+`deviceId` salvato in `localStorage` viene mandato al server durante la conferma.
 
 Controllo sintassi server:
 
