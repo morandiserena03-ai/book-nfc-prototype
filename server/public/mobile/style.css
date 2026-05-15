@@ -1,0 +1,164 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body{
+
+    width:100%;
+    height:100%;
+
+    overflow:hidden;
+
+    background:#05053E;
+
+    touch-action:manipulation;
+}
+
+/*
+    BLOCCA:
+    - zoom
+    - scroll
+    - overscroll
+*/
+
+body{
+
+    position:fixed;
+
+    inset:0;
+
+    overflow:hidden;
+
+    background:#05053E;
+
+    font-family:sans-serif;
+}
+
+/* ---------------- */
+/* TITLE */
+/* ---------------- */
+
+.title{
+
+    position:absolute;
+
+    top:24px;
+    left:24px;
+
+    z-index:20;
+
+    color:white;
+
+    font-family:"PP Monument Wide", sans-serif;
+
+    font-size:3.4rem;
+
+    line-height:0.9;
+
+    letter-spacing:-0.04em;
+}
+
+/* ---------------- */
+/* USERNAME */
+/* ---------------- */
+
+#userNickname{
+
+    position:absolute;
+
+    top:165px;
+    left:24px;
+
+    z-index:20;
+
+    color:white;
+
+    font-family:"PP Monument Wide", sans-serif;
+
+    font-size:1.4rem;
+
+    font-weight:400;
+
+    opacity:0.95;
+}
+
+/* ---------------- */
+/* REGISTER */
+/* ---------------- */
+
+#registerBox{
+
+    position:absolute;
+
+    top:220px;
+    left:24px;
+
+    z-index:30;
+
+    display:flex;
+    gap:10px;
+}
+
+#nickname{
+
+    border:none;
+    border-radius:14px;
+
+    padding:14px 18px;
+
+    font-size:1rem;
+
+    outline:none;
+}
+
+button{
+
+    border:none;
+    border-radius:14px;
+
+    padding:14px 18px;
+
+    background:white;
+    color:#05053E;
+
+    font-size:1rem;
+
+    font-weight:bold;
+}
+
+/* ---------------- */
+/* STICKERS */
+/* ---------------- */
+
+#stickers{
+
+    position:absolute;
+
+    top:205px;
+
+    left:0;
+
+    width:100%;
+    height:calc(100vh - 205px);
+
+    overflow:hidden;
+}
+
+.sticker{
+
+    position:absolute;
+
+    width:180px;
+
+    height:auto;
+
+    object-fit:contain;
+
+    pointer-events:none;
+    user-select:none;
+}

@@ -1,0 +1,364 @@
+# Book NFC Prototype - Memory
+
+## Scopo del progetto
+
+Questo progetto e un prototipo per un'esperienza Book Pride basata su scansioni NFC.
+L'utente si registra da una pagina mobile, scansiona un libro tramite URL NFC, conferma
+l'aggiunta alla propria libreria e riceve sticker/etichette grafiche legate ai generi del libro.
+Una dashboard separata mostra in tempo reale gli utenti registrati e gli sticker accumulati.
+
+## Stack tecnico
+
+- Runtime: Node.js
+- Server HTTP: Express
+- Realtime: Socket.IO
+- Moduli: CommonJS (`require`, `module.exports`)
+- Frontend: HTML, CSS e JavaScript vanilla
+- Persistenza: solo in memoria lato server e `localStorage` lato browser
+- Static assets: serviti da `server/public`
+
+Non c'e un database: gli utenti sono salvati nella variabile `users` dentro `server/server.js`.
+Al riavvio del server, lo stato utenti viene perso.
+
+## Struttura cartelle
+
+```text
+.
+├── package.json
+├── package-lock.json
+├── memory
+├── fonts/
+│   └── PPMonument*.otf
+└── server/
+    ├── server.js
+    ├── data/
+    │   ├── books.js
+    │   ├── genres.js
+    │   └── users.js
+    └── public/
+        ├── books/
+        │   ├── I tredici colpevoli.png
+        │   ├── Intermezzo.png
+        │   └── Trentatre.png
+        ├── stickers/
+        │   ├── Biografico.png
+        │   ├── Giallo.png
+        │   ├── Rosa.png
+        │   ├── Saggistica.png
+        │   └── Thriller.png
+        ├── mobile/
+        │   ├── index.html
+        │   ├── style.css
+        │   └── app.js
+        └── dashboard/
+            ├── index.html
+            ├── style.css
+            └── app.js
+```
+
+## Architettura generale
+
+Il progetto ha una architettura semplice client-server:
+
+1. `server/server.js` avvia Express e Socket.IO sulla porta `3000`.
+2. Express serve i file statici da `server/public`.
+3. La pagina mobile vive in `/mobile`.
+4. La dashboard vive in `/dashboard`.
+5. Le pagine NFC/conferma libro sono generate lato server da `renderNfcConfirmationPage()`.
+6. Socket.IO invia l'evento `update` a tutti i client quando cambia la collezione di un utente.
+7. I client ricaricano lo stato utenti tramite `GET /users`.
+
+## File server principale
+
+`server/server.js` contiene:
+
+- Setup Express, HTTP server e Socket.IO.
+- Middleware CORS e JSON body parser.
+- Log di ogni richiesta.
+- Configurazione static files:
+
+```js
+app.use(express.static(path.join(__dirname, "public")));
+```
+
+- Stato runtime:
+
+```js
+let users = {};
+```
+
+- Catalogo libri inline:
+
+```js
+const books = {
+  book1: {
+    title: "I tredici colpevoli",
+    coverImage: "I tredici colpevoli.png",
+    genres: ["thriller", "giallo"]
+  },
+  book2: {
+    title: "Intermezzo",
+    coverImage: "Intermezzo.png",
+    genres: ["rosa", "biografico", "giallo"]
+  },
+  book3: {
+    title: "Trentatrè piccole storie di design",
+    coverImage: "Trentatre.png",
+    genres: ["saggistica"]
+  }
+};
+```
+
+Nota: esistono anche `server/data/books.js`, `server/data/genres.js` e `server/data/users.js`.
+Al momento pero `server/server.js` non importa questi moduli: usa i dati dichiarati inline.
+Se il progetto cresce, conviene spostare la sorgente dati in `server/data/books.js` e importarla.
+
+## Rotte HTTP
+
+### Pagine
+
+- `GET /mobile`
+  - Serve `server/public/mobile/index.html`.
+
+- `GET /dashboard`
+  - Serve `server/public/dashboard/index.html`.
+
+- `GET /scan/:bookId`
+  - Mostra la pagina di conferma per un libro.
+  - Usa la stessa UI di `/nfc/:bookId`.
+
+- `GET /nfc/:bookId`
+  - Mostra la pagina di conferma NFC.
+  - Se il libro esiste, renderizza titolo, immagine copertina e pulsante "aggiungi alla libreria".
+  - La copertina viene presa da `/books/<coverImage>`.
+
+### API
+
+- `POST /register`
+  - Body: `{ nickname, deviceId }`
+  - Crea/aggiorna `users[deviceId] = { nickname, collection: [] }`
+  - Emette `io.emit("update")`.
+
+- `POST /scan`
+  - Body: `{ deviceId, bookId }`
+  - Aggiunge i generi del libro alla collezione dell'utente.
+  - Emette `io.emit("update")`.
+  - Usata dal client mobile come scansione diretta/manuale.
+
+- `GET /users`
+  - Restituisce tutto l'oggetto `users`.
+  - Usata da mobile e dashboard per sincronizzarsi.
+
+- `POST /nfc/:bookId/confirm`
+  - Body: `{ deviceId }`
+  - Conferma l'aggiunta del libro dalla pagina NFC.
+  - Se `deviceId` non arriva, usa `getLastUserId()` come fallback.
+  - Aggiunge alla collection dell'utente tutti i generi del libro.
+  - Emette `io.emit("update")`.
+
+## Modello dati
+
+### Utente
+
+```js
+{
+  nickname: "Nome utente",
+  collection: ["thriller", "giallo", "rosa"]
+}
+```
+
+`collection` non contiene libri, ma generi. Ogni genere corrisponde a uno sticker.
+Se un libro ha piu generi, vengono aggiunti piu sticker.
+
+### Libro
+
+```js
+{
+  title: "Intermezzo",
+  coverImage: "Intermezzo.png",
+  genres: ["rosa", "biografico", "giallo"]
+}
+```
+
+Il `bookId` usato nelle rotte e nelle scansioni e `book1`, `book2`, `book3`.
+
+### Generi e sticker
+
+I generi usati sono:
+
+- `biografico` -> `/stickers/Biografico.png`
+- `giallo` -> `/stickers/Giallo.png`
+- `rosa` -> `/stickers/Rosa.png`
+- `saggistica` -> `/stickers/Saggistica.png`
+- `thriller` -> `/stickers/Thriller.png`
+
+Nel client mobile gli sticker vengono caricati con:
+
+```js
+img.src = `/stickers/${genre}.png`;
+```
+
+Attenzione: questo presuppone che il nome file combaci con il valore del genere.
+Attualmente i file hanno iniziale maiuscola (`Rosa.png`, `Giallo.png`, ecc.), mentre i generi
+sono minuscoli. Su filesystem case-sensitive potrebbe essere un problema. In questo progetto
+su macOS di solito funziona perche il filesystem e spesso case-insensitive.
+
+## Client mobile
+
+File principali:
+
+- `server/public/mobile/index.html`
+- `server/public/mobile/style.css`
+- `server/public/mobile/app.js`
+
+Responsabilita:
+
+- Genera o recupera un `deviceId` da `localStorage`.
+- Mostra form di registrazione con nickname.
+- Chiama `POST /register`.
+- Ascolta Socket.IO per eventi `update`.
+- Chiama `GET /users` e aggiorna la vista dell'utente corrente.
+- Disegna gli sticker in modo sparso e persistente.
+
+Lo sticker layout:
+
+- Usa `localStorage.stickerLayout` per mantenere fissa la posizione degli sticker.
+- Evita sovrapposizioni con funzioni geometriche (`getStickerRect`, `rectsOverlap`, `isFarEnough`).
+- Genera posizione e rotazione casuale.
+- Dimensione sticker mobile: `180px`.
+
+La pagina mobile blocca scroll/zoom e usa uno sfondo blu scuro `#05053E`.
+
+## Dashboard
+
+File principali:
+
+- `server/public/dashboard/index.html`
+- `server/public/dashboard/style.css`
+- `server/public/dashboard/app.js`
+
+Responsabilita:
+
+- Ascolta Socket.IO per eventi `update`.
+- Chiama `GET /users`.
+- Renderizza una card per ogni utente.
+- Mostra nickname e sticker della collection.
+
+La dashboard e piu semplice del mobile: gli stili delle card sono in parte inline dentro
+`dashboard/app.js` e in parte in `dashboard/style.css`.
+
+## Pagina conferma NFC
+
+La pagina di conferma e generata dentro `server/server.js` dalla funzione
+`renderNfcConfirmationPage(bookId, book)`.
+
+Mostra:
+
+- Titolo del libro.
+- Copertina del libro sotto il titolo.
+- Pulsante `aggiungi alla libreria`.
+- Messaggio finale `Aggiunto in libreria`.
+
+Quando l'utente clicca il pulsante:
+
+1. Viene fatta una `fetch` a `POST /nfc/:bookId/confirm`.
+2. Viene mandato `deviceId` letto da `localStorage`.
+3. Se la conferma riesce, il main riceve classe `added`.
+4. Titolo, copertina e bottone vengono nascosti.
+5. Compare il messaggio finale.
+
+Le immagini libro sono:
+
+- `book1`: `/books/I%20tredici%20colpevoli.png`
+- `book2`: `/books/Intermezzo.png`
+- `book3`: `/books/Trentatre.png`
+
+CSS rilevante:
+
+```css
+.book-cover {
+  display: block;
+  width: auto;
+  height: auto;
+  margin: 0 0 28px;
+}
+```
+
+Questo mantiene la dimensione originale dell'immagine.
+
+## Realtime
+
+Socket.IO viene usato solo per notificare che qualcosa e cambiato.
+Il payload dell'evento non contiene dati:
+
+```js
+io.emit("update");
+```
+
+Dopo l'evento:
+
+- Mobile chiama `refreshUser()`.
+- Dashboard chiama `loadUsers()`.
+
+Questo rende il modello semplice: Socket.IO e un segnale, HTTP resta la sorgente dati.
+
+## Flusso utente principale
+
+1. L'utente apre `/mobile`.
+2. Il browser crea un `deviceId` e lo salva in `localStorage`.
+3. L'utente inserisce nickname e preme Register.
+4. Il server salva l'utente in memoria.
+5. L'utente apre/scansiona un URL tipo `/nfc/book2`.
+6. La pagina mostra titolo e copertina del libro.
+7. L'utente conferma.
+8. Il server aggiunge i generi del libro alla collection.
+9. Il server emette `update`.
+10. Mobile e dashboard ricaricano `/users`.
+11. Il mobile mostra gli sticker relativi ai generi aggiunti.
+
+## Comandi utili
+
+Avvio server:
+
+```bash
+node server/server.js
+```
+
+URL locali:
+
+```text
+http://localhost:3000/mobile
+http://localhost:3000/dashboard
+http://localhost:3000/nfc/book1
+http://localhost:3000/nfc/book2
+http://localhost:3000/nfc/book3
+```
+
+Controllo sintassi server:
+
+```bash
+node --check server/server.js
+```
+
+## Limiti attuali / cose da ricordare
+
+- Nessuna persistenza su database.
+- `users` viene perso al riavvio.
+- `server/data/books.js` duplica dati che sono anche in `server/server.js`.
+- `server/data/users.js` e vuoto.
+- `package.json` non ha uno script `start`.
+- I generi sono salvati come stringhe, non come oggetti strutturati.
+- La dashboard usa stili inline per le card utente.
+- La pagina NFC usa `getLastUserId()` come fallback se manca `deviceId`, quindi in scenari multiutente veri puo associare la scansione all'ultimo utente registrato.
+- I nomi degli sticker hanno iniziale maiuscola, ma i generi in `collection` sono minuscoli.
+- Non ci sono test automatici.
+
+## Possibili evoluzioni
+
+- Importare `books` da `server/data/books.js` invece di duplicarlo in `server/server.js`.
+- Usare `genres.js` per risolvere sempre il path corretto degli sticker.
+- Aggiungere persistenza su file JSON o database leggero.
+- Aggiungere script `npm start`.
+- Separare la pagina NFC in file HTML/CSS/JS statici o template dedicato.
+- Rendere la dashboard piu coerente con il design del mobile.
+- Gestire utenti multipli senza fallback sull'ultimo registrato.
