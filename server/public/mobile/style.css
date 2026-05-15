@@ -104,6 +104,18 @@ body{
     gap:10px;
 }
 
+#deleteBox{
+
+    position:absolute;
+
+    top:290px;
+    left:24px;
+
+    z-index:30;
+
+    width:calc(100% - 48px);
+}
+
 #nickname{
 
     border:none;
@@ -129,6 +141,14 @@ button{
     font-size:1rem;
 
     font-weight:bold;
+}
+
+button.delete-btn{
+
+    background:#ff4444;
+    color:white;
+
+    margin-top:8px;
 }
 
 /* ---------------- */

@@ -14,6 +14,35 @@ socket.on("update", () => {
     refreshUser();
 });
 
+// --------------------
+// INIT PAGE
+// --------------------
+async function initPage() {
+
+    try {
+
+        const res = await fetch(`${BASE_URL}/users`);
+        const users = await res.json();
+
+        const user = users[deviceId];
+
+        if (user) {
+            // Utente già registrato
+            renderUser(user);
+        } else {
+            // Utente non trovato, mostra form registrazione
+            document.getElementById("registerBox").style.display = "block";
+            document.getElementById("deleteBox").style.display = "none";
+        }
+
+    } catch (err) {
+        console.error("Init error:", err);
+    }
+}
+
+// Chiama initPage al caricamento
+initPage();
+
 function getStickerRect(layout, stickerSize) {
 
     return {
@@ -129,6 +158,10 @@ function renderUser(user) {
     // nasconde register dopo login
     document.getElementById("registerBox").style.display =
         "none";
+
+    // mostra delete box
+    document.getElementById("deleteBox").style.display =
+        "block";
 
     const container =
         document.getElementById("stickers");
@@ -252,6 +285,55 @@ async function scan(bookId) {
 }
 
 // --------------------
+// DELETE
+// --------------------
+async function deleteUser() {
+
+    if (!confirm("Sei sicuro di voler cancellare il tuo account?")) {
+        return;
+    }
+
+    try {
+
+        const res = await fetch(`${BASE_URL}/delete`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                deviceId
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Delete error");
+        }
+
+        // Pulisci localStorage
+        localStorage.removeItem("deviceId");
+        localStorage.removeItem("stickerLayout");
+
+        // Pulisci interfaccia
+        document.getElementById("userNickname").innerText = "";
+        document.getElementById("registerBox").style.display = "block";
+        document.getElementById("nickname").value = "";
+        document.getElementById("stickers").innerHTML = "";
+        document.getElementById("deleteBox").style.display = "none";
+
+        alert("Account cancellato");
+
+        // Ricarica la pagina per generare un nuovo deviceId
+        location.reload();
+
+    } catch (err) {
+        console.error(err);
+        alert("Delete error: " + err.message);
+    }
+}
+
+// --------------------
 // REFRESH
 // --------------------
 async function refreshUser() {
@@ -265,6 +347,13 @@ async function refreshUser() {
 
         if (user) {
             renderUser(user);
+        } else {
+            // Utente non trovato, reset interfaccia
+            document.getElementById("userNickname").innerText = "";
+            document.getElementById("registerBox").style.display = "block";
+            document.getElementById("nickname").value = "";
+            document.getElementById("stickers").innerHTML = "";
+            document.getElementById("deleteBox").style.display = "none";
         }
 
     } catch (err) {

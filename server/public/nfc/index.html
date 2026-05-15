@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Conferma libro</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+            background: #05053E;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        main {
+            width: min(100%, 420px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 20px;
+            font-size: clamp(2rem, 9vw, 3.2rem);
+            line-height: 1;
+            font-weight: 900;
+        }
+        .book-cover {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            height: auto;
+            margin: 0 0 28px;
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+        .genres {
+            color: #d0d0ff;
+            margin: 0 0 24px;
+            font-weight: 600;
+        }
+        button {
+            width: 100%;
+            max-width: 320px;
+            border: none;
+            border-radius: 14px;
+            padding: 16px 18px;
+            background: white;
+            color: #05053E;
+            font-size: 1rem;
+            font-weight: 800;
+            text-transform: lowercase;
+            cursor: pointer;
+        }
+        button:disabled {
+            opacity: 0.72;
+        }
+        .message {
+            display: none;
+            margin: 24px 0 0;
+            font-size: clamp(1.5rem, 8vw, 2.5rem);
+            line-height: 0.95;
+            font-weight: 900;
+        }
+        .error {
+            color: #ff9999;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+    <main id="confirmation">
+        <h1 id="bookTitle">Caricamento...</h1>
+        <img id="bookCover" class="book-cover" alt="Copertina libro" hidden>
+        <p id="bookGenres" class="genres"></p>
+        <button id="confirmButton" type="button">aggiungi alla libreria</button>
+        <p class="message" id="successMessage">Aggiunto in libreria</p>
+        <p class="error" id="errorMessage"></p>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
