@@ -6,6 +6,27 @@
 </head>
 <body>
 
+    <header class="desktopHeader">
+        <a class="brandLink" href="/mobile" aria-label="Book Pride">
+            <img src="/Icons/BookPride.png" alt="Book Pride">
+        </a>
+
+        <nav class="desktopNav" aria-label="Navigazione principale">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/mobile">Mobile</a>
+            <div class="booksMenu">
+                <button class="booksMenuTrigger" type="button" aria-haspopup="true">
+                    Libri
+                </button>
+                <div id="booksDropdown" class="booksDropdown">
+                    <a href="/nfc?book=book1">I tredici colpevoli</a>
+                    <a href="/nfc?book=book2">Intermezzo</a>
+                    <a href="/nfc?book=book3">Trentatrè piccole storie di design</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
     <h1 class="title">Dashboard</h1>
 
     <div id="usersContainer"></div>

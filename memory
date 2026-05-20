@@ -16,6 +16,7 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `server/public/nfc/` (pagina NFC unica parametrizzata)
 - `server/public/books/` (copertine)
 - `server/public/stickers/` (sticker per genere)
+- `Icons/` (logo Book Pride, GIF caricamento, icona cestino)
 
 ## Architettura
 
@@ -33,6 +34,7 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `GET /dashboard` → dashboard realtime
 - `GET /nfc` → pagina NFC unica con query `?book=<bookId>`
 - `GET /nfc/:bookId` e `GET /scan/:bookId` → redirect a `/nfc?book=<bookId>`
+- `GET /api/books` → catalogo libri JSON per menu navbar
 - `GET /api/book/:bookId` → dati libro JSON
 - `POST /register` → registra/aggiorna utente
 - `POST /nfc/confirm` → aggiunge libro all'utente
@@ -47,6 +49,11 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - Funzione di cancellazione account
 - Layout sticker persistente in `localStorage`
 - Redirect automatico a `/mobile` dopo conferma NFC
+- Se un utente non registrato apre una pagina NFC, vede la GIF di caricamento, un alert di registrazione necessaria e viene mandato a `/mobile`
+- La pagina NFC non mostra più i generi del libro, solo titolo, copertina e bottone di conferma
+- Le schermate di caricamento usano `/Icons/Logo-animato.gif`
+- Navbar desktop condivisa tra mobile e dashboard: logo `BookPride.png` a sinistra, voci `Dashboard`, `Mobile`, `Libri` a destra
+- Il menu `Libri` è hover/focus e mostra link a pillole blu verso `/nfc?book=<bookId>`
 
 ## Dettagli implementativi
 
@@ -63,6 +70,11 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `POST /delete` cancella l'utente e notifica tutti i client
 - `mobile/app.js` gestisce init, refresh, register, delete e render sticker
 - `dashboard/app.js` mostra gli utenti aggiornati via Socket.IO
+- `mobile/index.html` contiene la navbar desktop e il contenuto centrale della pagina
+- `mobile/style.css` ha layout mobile compatto sotto `700px` e layout desktop full-screen sopra `700px`
+- Su desktop mobile, titolo/nickname sono sotto il layer sticker; `#stickers` usa `pointer-events: none` per non bloccare il click sul cestino
+- `dashboard/style.css` contiene la stessa navbar desktop e card utenti con sfondo `#373765`
+- Le card dashboard sono in griglia con massimo 2 colonne, 1 colonna sotto `800px`
 
 ## Limiti attuali
 
@@ -71,6 +83,7 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `collection` contiene generi testuali
 - `genres.js` esiste ma non è usato per tutte le risoluzioni sticker
 - Mancano test automatici
+- Dopo modifiche a `server/server.js`, riavviare il server perché gli endpoint nuovi come `/api/books` siano disponibili
 
 ## Comandi utili
 
@@ -80,6 +93,42 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `http://localhost:3000/nfc?book=book1`
 
 ## Changelog
+
+### 20 maggio 2026 - UI desktop, navbar, NFC e dashboard
+
+✅ **Navbar condivisa:**
+- Aggiunta navbar desktop in `/mobile` e `/dashboard`
+- Logo `/Icons/BookPride.png` a sinistra
+- Voci a destra: `Dashboard`, `Mobile`, `Libri`
+- `Libri` apre al passaggio del mouse/focus un menu a tendina con pillole blu
+- Ogni pillola punta alla pagina NFC del libro (`/nfc?book=book1`, ecc.)
+- Aggiunto endpoint `GET /api/books` per popolare dinamicamente il menu libri
+- Link libri statici restano nell'HTML come fallback se il server non è riavviato
+
+✅ **Mobile desktop layout:**
+- Da desktop `/mobile` diventa una scena full-screen Book Pride
+- Titolo `Benvenut* al Book Pride!` e nickname sono centrati
+- Sticker distribuiti intorno al contenuto centrale
+- Sticker sopra titolo/nickname visivamente, ma `#stickers` non intercetta click (`pointer-events: none`)
+- Cestino `/Icons/Cestino.png` vicino al nickname cancella l'utente tramite `deleteUser()`
+- Layout mobile compatto mantenuto sotto `700px`
+
+✅ **Dashboard:**
+- Aggiunta navbar come nella mobile desktop
+- Card utenti con angoli smussati, nessun bordo e sfondo `#373765`
+- Card utenti in massimo 2 colonne, 1 colonna su viewport stretto
+- Dashboard continua ad aggiornarsi via Socket.IO
+
+✅ **NFC e registrazione:**
+- Utente non registrato che apre NFC: GIF `Logo-animato.gif`, alert registrazione necessaria, redirect a `/mobile`
+- NFC usa GIF di caricamento prima di mostrare contenuti
+- Rimossi i generi dalla pagina di aggiunta libro NFC
+- Dopo conferma libro, messaggio di successo e redirect a `/mobile`
+
+✅ **Asset usati:**
+- `/Icons/BookPride.png` per logo
+- `/Icons/Logo-animato.gif` per caricamenti
+- `/Icons/Cestino.png` per eliminazione utente
 
 - 15 maggio 2026: refactor NFC su pagina unica, aggiunta delete account, redirect automatico dopo conferma, pulizia duplicazioni dati
 ✅ **Ridondanze eliminate:**
@@ -115,14 +164,9 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
   - **RISOLTO:** Ora ricaricando la pagina riconosce l'utente già registrato
 
 ✅ **UI (index.html):**
-- Aggiunto `#deleteBox` con bottone "Cancella account"
-- Bottone visibile solo quando utente è registrato (display: none di default)
-- Bottone nascosto dopo cancellazione
-
-✅ **Stile (style.css):**
-- Aggiunta classe `.delete-btn` con colore rosso (#ff4444)
-- Stile coerente con design mobile
-- `#deleteBox` posizionato sotto il registerBox (top: 290px)
+- La UI attuale usa `#deleteIconBtn` con icona `/Icons/Cestino.png`
+- Il pulsante è visibile solo quando l'utente è registrato
+- Dopo cancellazione viene nascosto e la pagina viene ricaricata
 
 ### 15 maggio 2026 - Redirect dopo aggiunta libro
 

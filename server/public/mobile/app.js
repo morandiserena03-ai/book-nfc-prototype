@@ -1,5 +1,4 @@
 const BASE_URL = window.location.origin;
-const STICKER_STAGE_TOP = 205;
 
 let deviceId = localStorage.getItem("deviceId");
 
@@ -32,16 +31,53 @@ async function initPage() {
         } else {
             // Utente non trovato, mostra form registrazione
             document.getElementById("registerBox").style.display = "block";
-            document.getElementById("deleteBox").style.display = "none";
+            document.getElementById("deleteIconBtn").style.display = "none";
+            hidePageLoader();
         }
 
     } catch (err) {
         console.error("Init error:", err);
+        hidePageLoader();
     }
 }
 
 // Chiama initPage al caricamento
 initPage();
+loadBooksMenu();
+
+function isDesktopLayout() {
+    return window.matchMedia("(min-width: 700px)").matches;
+}
+
+async function loadBooksMenu() {
+
+    const dropdown =
+        document.getElementById("booksDropdown");
+
+    if (!dropdown) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${BASE_URL}/api/books`);
+        const books = await res.json();
+
+        dropdown.innerHTML = "";
+
+        Object.entries(books).forEach(([bookId, book]) => {
+
+            const link =
+                document.createElement("a");
+
+            link.href = `/nfc?book=${encodeURIComponent(bookId)}`;
+            link.textContent = book.title;
+
+            dropdown.appendChild(link);
+        });
+    } catch (err) {
+        console.error("Books menu error:", err);
+    }
+}
 
 function getStickerRect(layout, stickerSize) {
 
@@ -72,12 +108,43 @@ function isFarEnough(candidate, placedRects, stickerSize) {
     });
 }
 
+function getStickerStageMetrics() {
+
+    const container =
+        document.getElementById("stickers");
+
+    return {
+        width: Math.max(container.clientWidth, stickerSizeFallback()),
+        height: Math.max(container.clientHeight, stickerSizeFallback())
+    };
+}
+
+function stickerSizeFallback() {
+    return isDesktopLayout() ? 230 : 180;
+}
+
+function isLayoutInsideStage(layout, stage, stickerSize) {
+
+    const overflow = stickerSize * 0.32;
+    const minVisible = stickerSize * 0.56;
+
+    return (
+        layout.x >= -overflow &&
+        layout.x <= stage.width - minVisible &&
+        layout.y >= 8 &&
+        layout.y <= stage.height - minVisible
+    );
+}
+
 function createStickerLayout(placedRects, index) {
 
-    const stickerSize = 180;
-    const containerTop = STICKER_STAGE_TOP;
-    const containerHeight =
-        Math.max(window.innerHeight - containerTop, stickerSize);
+    const stickerSize = stickerSizeFallback();
+    const stage = getStickerStageMetrics();
+    const containerHeight = stage.height;
+
+    if (isDesktopLayout()) {
+        return createDesktopStickerLayout(placedRects, index, stage, stickerSize);
+    }
 
     /*
         Lascia una piccola porzione degli sticker libera di uscire
@@ -88,7 +155,7 @@ function createStickerLayout(placedRects, index) {
     const minVisible = stickerSize * 0.56;
 
     const minX = -overflow;
-    const maxX = window.innerWidth - minVisible;
+    const maxX = stage.width - minVisible;
     const minY = 8;
     const maxY = containerHeight - minVisible;
 
@@ -149,7 +216,79 @@ function createStickerLayout(placedRects, index) {
     };
 }
 
+function createDesktopStickerLayout(placedRects, index, stage, stickerSize) {
+
+    const overflow = stickerSize * 0.36;
+    const minVisible = stickerSize * 0.58;
+    const minX = -overflow;
+    const maxX = stage.width - minVisible;
+    const minY = 108;
+    const maxY = stage.height - minVisible;
+
+    const centerBlock = {
+        left: stage.width * 0.22,
+        top: stage.height * 0.32,
+        right: stage.width * 0.78,
+        bottom: stage.height * 0.68
+    };
+
+    let bestCandidate = null;
+    let bestScore = -Infinity;
+
+    for (let attempt = 0; attempt < 140; attempt++) {
+
+        const candidate = {
+            x: minX + (Math.random() * (maxX - minX)),
+            y: minY + (Math.random() * (maxY - minY)),
+            rotation: (Math.random() * 44) - 22
+        };
+
+        const candidateRect = getStickerRect(candidate, stickerSize);
+
+        if (rectsOverlap(candidateRect, centerBlock, 34)) {
+            continue;
+        }
+
+        if (!isFarEnough(candidate, placedRects, stickerSize)) {
+            continue;
+        }
+
+        const centerX =
+            candidate.x + (stickerSize / 2);
+        const centerY =
+            candidate.y + (stickerSize / 2);
+        const distanceFromCenter =
+            Math.hypot(centerX - (stage.width / 2), centerY - (stage.height / 2));
+
+        if (distanceFromCenter > bestScore) {
+            bestScore = distanceFromCenter;
+            bestCandidate = candidate;
+        }
+    }
+
+    if (bestCandidate) {
+        return bestCandidate;
+    }
+
+    const fallbackPositions = [
+        { x: stage.width * 0.08, y: stage.height * 0.28 },
+        { x: stage.width * 0.74, y: stage.height * 0.22 },
+        { x: stage.width * 0.05, y: stage.height * 0.62 },
+        { x: stage.width * 0.68, y: stage.height * 0.68 },
+        { x: stage.width * 0.26, y: stage.height * 0.76 },
+        { x: stage.width * 0.56, y: stage.height * 0.14 }
+    ];
+    const fallback = fallbackPositions[index % fallbackPositions.length];
+
+    return {
+        x: Math.min(Math.max(fallback.x, minX), maxX),
+        y: Math.min(Math.max(fallback.y, minY), maxY),
+        rotation: (Math.random() * 44) - 22
+    };
+}
+
 function renderUser(user) {
+    hidePageLoader();
 
     // nickname
     document.getElementById("userNickname").innerText =
@@ -159,9 +298,8 @@ function renderUser(user) {
     document.getElementById("registerBox").style.display =
         "none";
 
-    // mostra delete box
-    document.getElementById("deleteBox").style.display =
-        "block";
+    // mostra delete icona vicino al nickname
+    document.getElementById("deleteIconBtn").style.display = "inline-flex";
 
     const container =
         document.getElementById("stickers");
@@ -186,7 +324,7 @@ function renderUser(user) {
 
     user.collection.forEach((genre, index) => {
 
-        const key = `${genre}-${index}`;
+        const key = `${isDesktopLayout() ? "desktop" : "mobile"}-${genre}-${index}`;
 
         // genera SOLO se non esiste
         if (!savedLayout[key]) {
@@ -196,9 +334,17 @@ function renderUser(user) {
         }
 
         const layout = savedLayout[key];
-        const stickerSize = 180;
+        const stickerSize = stickerSizeFallback();
+        const stage = getStickerStageMetrics();
 
-        placedRects.push(getStickerRect(layout, stickerSize));
+        if (!isLayoutInsideStage(layout, stage, stickerSize)) {
+            savedLayout[key] =
+                createStickerLayout(placedRects, index);
+        }
+
+        const currentLayout = savedLayout[key];
+
+        placedRects.push(getStickerRect(currentLayout, stickerSize));
 
         const img =
             document.createElement("img");
@@ -207,12 +353,12 @@ function renderUser(user) {
 
         img.classList.add("sticker");
 
-        img.style.left = `${layout.x}px`;
+        img.style.left = `${currentLayout.x}px`;
 
-        img.style.top = `${layout.y}px`;
+        img.style.top = `${currentLayout.y}px`;
 
         img.style.transform =
-            `rotate(${layout.rotation}deg)`;
+            `rotate(${currentLayout.rotation}deg)`;
 
         container.appendChild(img);
     });
@@ -222,6 +368,10 @@ function renderUser(user) {
         "stickerLayout",
         JSON.stringify(savedLayout)
     );
+}
+
+function hidePageLoader() {
+    document.body.classList.remove("loading");
 }
 
 // --------------------
@@ -320,7 +470,7 @@ async function deleteUser() {
         document.getElementById("registerBox").style.display = "block";
         document.getElementById("nickname").value = "";
         document.getElementById("stickers").innerHTML = "";
-        document.getElementById("deleteBox").style.display = "none";
+        document.getElementById("deleteIconBtn").style.display = "none";
 
         alert("Account cancellato");
 
@@ -353,7 +503,7 @@ async function refreshUser() {
             document.getElementById("registerBox").style.display = "block";
             document.getElementById("nickname").value = "";
             document.getElementById("stickers").innerHTML = "";
-            document.getElementById("deleteBox").style.display = "none";
+            document.getElementById("deleteIconBtn").style.display = "none";
         }
 
     } catch (err) {

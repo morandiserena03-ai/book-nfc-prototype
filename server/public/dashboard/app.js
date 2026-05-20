@@ -4,6 +4,36 @@ socket.on("update", () => {
     loadUsers();
 });
 
+async function loadBooksMenu() {
+
+    const dropdown =
+        document.getElementById("booksDropdown");
+
+    if (!dropdown) {
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/books");
+        const books = await response.json();
+
+        dropdown.innerHTML = "";
+
+        Object.entries(books).forEach(([bookId, book]) => {
+
+            const link =
+                document.createElement("a");
+
+            link.href = `/nfc?book=${encodeURIComponent(bookId)}`;
+            link.textContent = book.title;
+
+            dropdown.appendChild(link);
+        });
+    } catch (err) {
+        console.error("Books menu error:", err);
+    }
+}
+
 async function loadUsers() {
 
     const response = await fetch("/users");
@@ -27,9 +57,7 @@ function render(users) {
         const card =
             document.createElement("div");
 
-        card.style.border = "1px solid white";
-        card.style.padding = "20px";
-        card.style.margin = "20px";
+        card.classList.add("userCard");
 
         const title =
             document.createElement("h2");
@@ -45,8 +73,7 @@ function render(users) {
 
             img.src = `/stickers/${genre}.png`;
 
-            img.style.width = "80px";
-            img.style.margin = "5px";
+            img.classList.add("userSticker");
 
             card.appendChild(img);
         });
@@ -55,4 +82,5 @@ function render(users) {
     });
 }
 
+loadBooksMenu();
 loadUsers();

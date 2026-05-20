@@ -11,23 +11,54 @@
              user-scalable=no">
 </head>
 
-<body>
+<body class="loading">
 
+    <img
+        id="pageLoader"
+        class="page-loader"
+        src="/Icons/Logo-animato.gif"
+        alt="Caricamento"
+    >
+
+    <header class="desktopHeader">
+        <a class="brandLink" href="/mobile" aria-label="Book Pride">
+            <img src="/Icons/BookPride.png" alt="Book Pride">
+        </a>
+
+        <nav class="desktopNav" aria-label="Navigazione principale">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/mobile">Mobile</a>
+            <div class="booksMenu">
+                <button class="booksMenuTrigger" type="button" aria-haspopup="true">
+                    Libri
+                </button>
+                <div id="booksDropdown" class="booksDropdown">
+                    <a href="/nfc?book=book1">I tredici colpevoli</a>
+                    <a href="/nfc?book=book2">Intermezzo</a>
+                    <a href="/nfc?book=book3">Trentatrè piccole storie di design</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="heroContent">
     <h1 class="title">
-    Benvenut* al<br>
-    Book Pride!
+        <span>Benvenut* al</span>
+        <span>Book Pride!</span>
     </h1>
 
-    <h2 id="userNickname"></h2>
+    <div id="userRow">
+        <h2 id="userNickname"></h2>
+        <button id="deleteIconBtn" title="Cancella" onclick="deleteUser()" aria-label="Cancella" style="display:none;">
+            <img src="/Icons/Cestino.png" alt="Cancella" id="deleteIconImg">
+        </button>
+    </div>
 
     <div id="registerBox">
         <input id="nickname" placeholder="Nickname">
         <button onclick="registerUser()">Register</button>
     </div>
-
-    <div id="deleteBox" style="display: none;">
-        <button onclick="deleteUser()" class="delete-btn">Cancella account</button>
-    </div>
+    </main>
 
     <div id="stickers"></div>
 

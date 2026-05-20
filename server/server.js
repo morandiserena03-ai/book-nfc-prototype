@@ -7,7 +7,18 @@ const books = require("./data/books");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// Allow Socket.IO connections from the public tunnel host and localhost
+const io = new Server(server, {
+    cors: {
+        origin: [
+            "https://7bwqsgpg-3000.euw.devtunnels.ms",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+        ],
+        methods: ["GET", "POST"]
+    }
+});
 
 app.use(cors());
 app.use(express.json());
@@ -19,6 +30,8 @@ app.use((req, res, next) => {
 
 // CARTELLA PUBLIC
 app.use(express.static(path.join(__dirname, "public")));
+// Serve Icons folder at /Icons (project root)
+app.use('/Icons', express.static(path.join(__dirname, '..', 'Icons')));
 
 // DATI
 let users = {};
@@ -61,6 +74,10 @@ function escapeHtml(value) {
 }
 
 // NFC page now served as static asset in public/nfc/index.html
+app.get("/api/books", (req, res) => {
+    res.json(books);
+});
+
 // ROUTE API per ottenere dati libro
 app.get("/api/book/:bookId", (req, res) => {
 

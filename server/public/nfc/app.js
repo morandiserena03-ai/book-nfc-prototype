@@ -2,15 +2,65 @@ const params = new URLSearchParams(window.location.search);
 const bookId = params.get("book");
 const bookTitle = document.getElementById("bookTitle");
 const bookCover = document.getElementById("bookCover");
-const bookGenres = document.getElementById("bookGenres");
 const confirmButton = document.getElementById("confirmButton");
 const successMessage = document.getElementById("successMessage");
 const errorMessage = document.getElementById("errorMessage");
 
-if (!bookId) {
-    showError("Parametro libro mancante nell'URL.");
-} else {
-    loadBook(bookId);
+initNfcPage();
+
+async function initNfcPage() {
+    const canContinue = await ensureRegisteredUser();
+
+    if (!canContinue) {
+        return;
+    }
+
+    if (!bookId) {
+        showError("Parametro libro mancante nell'URL.");
+    } else {
+        loadBook(bookId);
+    }
+}
+
+async function ensureRegisteredUser() {
+    const deviceId = localStorage.getItem("deviceId");
+
+    if (!deviceId) {
+        await redirectToRegistration();
+        return false;
+    }
+
+    try {
+        const res = await fetch("/users");
+        const users = await res.json();
+
+        if (!users[deviceId]) {
+            await redirectToRegistration();
+            return false;
+        }
+
+        return true;
+    } catch (err) {
+        console.error("User check error:", err);
+        showError("Impossibile verificare la registrazione. Riprova tra poco.");
+        return false;
+    }
+}
+
+async function redirectToRegistration() {
+    document.body.classList.add("registration-redirect");
+    await waitForPagePaint();
+
+    alert("Registrazione necessaria per aggiungere un libro alla tua libreria.");
+    window.location.href = "/mobile";
+}
+
+function waitForPagePaint() {
+    return new Promise((resolve) => {
+        requestAnimationFrame(() => {
+            setTimeout(resolve, 0);
+        });
+    });
 }
 
 async function loadBook(bookId) {
@@ -24,7 +74,6 @@ async function loadBook(bookId) {
         const book = await res.json();
 
         bookTitle.textContent = book.title;
-        bookGenres.textContent = book.genres.join(" · ");
 
         if (book.coverImage) {
             bookCover.src = `/books/${encodeURIComponent(book.coverImage)}`;
@@ -32,28 +81,34 @@ async function loadBook(bookId) {
         }
 
         confirmButton.addEventListener("click", () => confirmBook(bookId));
+        hidePageLoader();
     } catch (err) {
         showError(err.message);
     }
 }
 
 function showError(message) {
+    hidePageLoader();
     bookTitle.textContent = "Errore";
     bookCover.hidden = true;
-    bookGenres.textContent = "";
     confirmButton.disabled = true;
     errorMessage.textContent = message;
+}
+
+function hidePageLoader() {
+    document.body.classList.remove("loading");
 }
 
 async function confirmBook(bookId) {
     confirmButton.disabled = true;
 
-    const deviceId = localStorage.getItem("deviceId");
+    const canContinue = await ensureRegisteredUser();
 
-    if (!deviceId) {
-        showError("Devi prima registrarti da /mobile prima di aggiungere un libro.");
+    if (!canContinue) {
         return;
     }
+
+    const deviceId = localStorage.getItem("deviceId");
 
     try {
         const res = await fetch("/nfc/confirm", {

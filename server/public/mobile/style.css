@@ -6,6 +6,14 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+:root{
+    --app-width:min(100vw, 430px);
+    --app-left:calc((100vw - var(--app-width)) / 2);
+    --side-padding:clamp(18px, 5.6vw, 24px);
+    --sticker-stage-top:205px;
+    --sticker-size:180px;
+}
+
 html,
 body{
 
@@ -36,7 +44,53 @@ body{
 
     background:#05053E;
 
-    font-family:sans-serif;
+    font-family:"PP Monument Wide", sans-serif;
+}
+
+@media (min-width:700px){
+    :root{
+        --app-width:100vw;
+        --app-left:0px;
+        --side-padding:clamp(40px, 4.2vw, 72px);
+        --sticker-stage-top:0px;
+        --sticker-size:clamp(170px, 12vw, 245px);
+    }
+}
+
+.page-loader{
+
+    position:absolute;
+
+    top:50%;
+    left:50%;
+
+    z-index:100;
+
+    width:min(42vw, 180px);
+    height:auto;
+
+    transform:translate(-50%, -50%);
+}
+
+body:not(.loading) .page-loader{
+    display:none;
+}
+
+body.loading .title,
+body.loading #userRow,
+body.loading #registerBox,
+body.loading #stickers,
+body.loading .desktopHeader{
+    display:none;
+}
+
+.desktopHeader{
+    display:none;
+}
+
+.heroContent{
+    position:relative;
+    z-index:20;
 }
 
 /* ---------------- */
@@ -48,7 +102,7 @@ body{
     position:absolute;
 
     top:24px;
-    left:24px;
+    left:calc(var(--app-left) + var(--side-padding));
 
     z-index:20;
 
@@ -56,35 +110,45 @@ body{
 
     font-family:"PP Monument Wide", sans-serif;
 
-    font-size:3.4rem;
+    font-size:clamp(2.75rem, 12vw, 3.4rem);
 
     line-height:0.9;
 
-    letter-spacing:-0.04em;
+    letter-spacing:0;
+}
+
+.title span{
+    display:block;
 }
 
 /* ---------------- */
 /* USERNAME */
 /* ---------------- */
 
-#userNickname{
+#userRow{
 
     position:absolute;
 
     top:165px;
-    left:24px;
+    left:calc(var(--app-left) + var(--side-padding));
+    width:calc(var(--app-width) - (var(--side-padding) * 2));
 
     z-index:20;
 
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+#userNickname{
     color:white;
-
     font-family:"PP Monument Wide", sans-serif;
-
-    font-size:1.4rem;
-
+    font-size:clamp(1.1rem, 4.4vw, 1.4rem);
     font-weight:400;
-
     opacity:0.95;
+    margin:0;
+    min-width:0;
+    overflow-wrap:anywhere;
 }
 
 /* ---------------- */
@@ -96,7 +160,8 @@ body{
     position:absolute;
 
     top:220px;
-    left:24px;
+    left:calc(var(--app-left) + var(--side-padding));
+    width:calc(var(--app-width) - (var(--side-padding) * 2));
 
     z-index:30;
 
@@ -104,19 +169,29 @@ body{
     gap:10px;
 }
 
-#deleteBox{
+/* delete icon button next to username */
+#deleteIconBtn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:40px;
+    height:34px;
+    padding:0;
+    border-radius:8px;
+    background:#373765;
+    border:none;
+    cursor:pointer;
+}
 
-    position:absolute;
-
-    top:290px;
-    left:24px;
-
-    z-index:30;
-
-    width:calc(100% - 48px);
+#deleteIconBtn img{
+    width:18px;
+    height:18px;
+    display:block;
 }
 
 #nickname{
+    min-width:0;
+    flex:1;
 
     border:none;
     border-radius:14px;
@@ -159,21 +234,25 @@ button.delete-btn{
 
     position:absolute;
 
-    top:205px;
+    top:var(--sticker-stage-top);
 
-    left:0;
+    left:50%;
 
-    width:100%;
-    height:calc(100vh - 205px);
+    width:var(--app-width);
+    height:calc(100dvh - var(--sticker-stage-top));
+
+    z-index:10;
 
     overflow:hidden;
+    pointer-events:none;
+    transform:translateX(-50%);
 }
 
 .sticker{
 
     position:absolute;
 
-    width:180px;
+    width:var(--sticker-size);
 
     height:auto;
 
@@ -181,4 +260,241 @@ button.delete-btn{
 
     pointer-events:none;
     user-select:none;
+}
+
+@media (min-width:700px){
+
+    body{
+        background:#05053E;
+    }
+
+    .desktopHeader{
+        position:absolute;
+        top:0;
+        left:0;
+        z-index:50;
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        width:100%;
+        padding:clamp(30px, 4.4vw, 62px) clamp(22px, 3.5vw, 36px) 0 var(--side-padding);
+        transform:translateX(-145px);
+        pointer-events:none;
+    }
+
+    .brandLink,
+    .desktopNav,
+    .booksMenu{
+        pointer-events:auto;
+    }
+
+    .brandLink{
+        display:inline-flex;
+        align-items:center;
+        transform:translateX(145px);
+    }
+
+    .brandLink img{
+        width:clamp(78px, 5.5vw, 108px);
+        height:auto;
+        display:block;
+    }
+
+    .desktopNav{
+        display:flex;
+        align-items:center;
+        gap:clamp(46px, 6vw, 120px);
+        color:white;
+        font-family:"PP Monument Wide", sans-serif;
+        font-size:clamp(0.9rem, 1vw, 1.18rem);
+        line-height:1;
+    }
+
+    .desktopNav a,
+    .booksMenuTrigger{
+        color:white;
+        text-decoration:none;
+        cursor:pointer;
+        opacity:0.96;
+    }
+
+    .desktopNav a:hover,
+    .booksMenuTrigger:hover{
+        opacity:0.72;
+    }
+
+    .booksMenu{
+        position:relative;
+    }
+
+    .booksMenuTrigger{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:0;
+        border:0;
+        border-radius:0;
+        background:transparent;
+        font:inherit;
+        text-transform:none;
+    }
+
+    .booksMenuTrigger::after{
+        content:"";
+        width:10px;
+        height:10px;
+        border-right:2px solid currentColor;
+        border-bottom:2px solid currentColor;
+        transform:translateY(-3px) rotate(45deg);
+    }
+
+    .booksDropdown{
+        position:absolute;
+        top:100%;
+        left:0;
+        margin-top:8px;
+        display:none;
+        flex-direction:column;
+        align-items:flex-start;
+        gap:16px;
+        min-width:250px;
+        padding:0;
+        border-radius:0;
+        background:transparent;
+        box-shadow:none;
+    }
+
+    .booksMenu:hover .booksDropdown,
+    .booksMenu:focus-within .booksDropdown{
+        display:flex;
+    }
+
+    .booksDropdown a:nth-child(1){
+        transform:rotate(-2deg);
+    }
+
+    .booksDropdown a:nth-child(2){
+        transform:rotate(1.5deg);
+    }
+
+    .booksDropdown a:nth-child(3){
+        transform:rotate(-1deg);
+    }
+
+    .booksDropdown a:nth-child(4){
+        transform:rotate(2deg);
+    }
+
+    .booksDropdown a:nth-child(5){
+        transform:rotate(-1.5deg);
+    }
+
+    .booksDropdown a{
+        display:inline-flex;
+        align-items:center;
+        width:max-content;
+        max-width:19ch;
+        color:white;
+        padding:12px 22px;
+        border-radius:999px;
+        background:#050CFF;
+        font-family:"PP Monument Wide", sans-serif;
+        font-weight:400;
+        font-size:0.88rem;
+        line-height:1.25;
+        text-decoration:none;
+        white-space:normal;
+        text-wrap:balance;
+        box-shadow:none;
+    }
+
+    .booksDropdown a:hover{
+        background:#2630ff;
+        opacity:1;
+    }
+
+    .heroContent{
+        position:absolute;
+        top:50%;
+        left:50%;
+        z-index:12;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        width:min(82vw, 1220px);
+        transform:translate(-50%, -50%);
+        text-align:center;
+    }
+
+    .title{
+        position:static;
+        color:white;
+        font-size:clamp(2.8rem, 4.35vw, 5rem);
+        line-height:0.95;
+        white-space:nowrap;
+    }
+
+    .title span{
+        display:inline;
+    }
+
+    .title span + span{
+        margin-left:0.25em;
+    }
+
+    #userRow{
+        position:static;
+        justify-content:center;
+        width:auto;
+        margin-top:18px;
+    }
+
+    #userNickname{
+        font-size:clamp(1.25rem, 1.8vw, 2.05rem);
+        line-height:1;
+    }
+
+    #deleteIconBtn{
+        width:34px;
+        height:34px;
+        background:transparent;
+        border-radius:0;
+    }
+
+    #deleteIconBtn img{
+        width:26px;
+        height:26px;
+        filter:brightness(0) invert(1);
+    }
+
+    #registerBox{
+        position:static;
+        justify-content:center;
+        width:min(520px, 100%);
+        margin-top:24px;
+    }
+
+    #nickname{
+        flex:1;
+    }
+
+    #stickers{
+        top:0;
+        left:0;
+        width:100vw;
+        height:100dvh;
+        z-index:20;
+        transform:none;
+    }
+}
+
+@media (min-width:700px) and (max-width:1050px){
+    .title{
+        font-size:clamp(2.45rem, 6vw, 4rem);
+        white-space:normal;
+    }
+
+    .desktopNav{
+        gap:clamp(24px, 4vw, 54px);
+    }
 }

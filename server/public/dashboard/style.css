@@ -1,8 +1,156 @@
 body {
-    margin: 50;
+    margin: 0;
+    padding: 150px 50px 50px;
     color: rgb(255, 255, 255);
     font-family: 'PP Monument Wide', sans-serif;
     background-color: #05053E;
+}
+
+.desktopHeader{
+    position:absolute;
+    top:0;
+    left:0;
+    z-index:50;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    width:100%;
+    padding:clamp(30px, 4.4vw, 62px) clamp(22px, 3.5vw, 36px) 0 clamp(40px, 4.2vw, 72px);
+    transform:translateX(-145px);
+    pointer-events:none;
+    box-sizing:border-box;
+}
+
+.brandLink,
+.desktopNav,
+.booksMenu{
+    pointer-events:auto;
+}
+
+.brandLink{
+    display:inline-flex;
+    align-items:center;
+    transform:translateX(145px);
+}
+
+.brandLink img{
+    width:clamp(78px, 5.5vw, 108px);
+    height:auto;
+    display:block;
+}
+
+.desktopNav{
+    display:flex;
+    align-items:center;
+    gap:clamp(46px, 6vw, 120px);
+    color:white;
+    font-family:"PP Monument Wide", sans-serif;
+    font-size:clamp(0.9rem, 1vw, 1.18rem);
+    line-height:1;
+}
+
+.desktopNav a,
+.booksMenuTrigger{
+    color:white;
+    text-decoration:none;
+    cursor:pointer;
+    opacity:0.96;
+}
+
+.desktopNav a:hover,
+.booksMenuTrigger:hover{
+    opacity:0.72;
+}
+
+.booksMenu{
+    position:relative;
+}
+
+.booksMenuTrigger{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    color:white;
+    font:inherit;
+    text-transform:none;
+}
+
+.booksMenuTrigger::after{
+    content:"";
+    width:10px;
+    height:10px;
+    border-right:2px solid currentColor;
+    border-bottom:2px solid currentColor;
+    transform:translateY(-3px) rotate(45deg);
+}
+
+.booksDropdown{
+    position:absolute;
+    top:100%;
+    left:0;
+    margin-top:8px;
+    display:none;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:16px;
+    min-width:250px;
+    padding:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+}
+
+.booksMenu:hover .booksDropdown,
+.booksMenu:focus-within .booksDropdown{
+    display:flex;
+}
+
+.booksDropdown a:nth-child(1){
+    transform:rotate(-2deg);
+}
+
+.booksDropdown a:nth-child(2){
+    transform:rotate(1.5deg);
+}
+
+.booksDropdown a:nth-child(3){
+    transform:rotate(-1deg);
+}
+
+.booksDropdown a:nth-child(4){
+    transform:rotate(2deg);
+}
+
+.booksDropdown a:nth-child(5){
+    transform:rotate(-1.5deg);
+}
+
+.booksDropdown a{
+    display:inline-flex;
+    align-items:center;
+    width:max-content;
+    max-width:19ch;
+    color:white;
+    padding:12px 22px;
+    border-radius:999px;
+    background:#050CFF;
+    font-family:"PP Monument Wide", sans-serif;
+    font-weight:400;
+    font-size:0.88rem;
+    line-height:1.25;
+    text-decoration:none;
+    white-space:normal;
+    text-wrap:balance;
+    box-shadow:none;
+}
+
+.booksDropdown a:hover{
+    background:#2630ff;
+    opacity:1;
 }
 
 .title{
@@ -19,6 +167,35 @@ body {
     line-height:0.9;
 
     letter-spacing:-0.04em;
+}
+
+#usersContainer{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:20px;
+}
+
+@media (max-width:800px){
+    #usersContainer{
+        grid-template-columns:1fr;
+    }
+}
+
+.userCard{
+    padding:20px;
+    border:0;
+    border-radius:16px;
+    background:#373765;
+}
+
+.userCard h2{
+    margin:0 0 16px;
+}
+
+.userSticker{
+    width:80px;
+    height:80px;
+    margin:5px;
 }
 
 #stickers {
