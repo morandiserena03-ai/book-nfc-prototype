@@ -58,6 +58,7 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 ## Dettagli implementativi
 
 - Il server importa i libri da `server/data/books.js`
+- Ogni libro in `server/data/books.js` contiene anche metadati non mostrati in UI: `themes` (keyword tematiche/narrative) e `narrativeStyles` (stili narrativi)
 - `users` è un oggetto in memoria: `users[deviceId] = { nickname, collection: [] }`
 - La pagina NFC recupera il libro via API e invia `{ deviceId, bookId }`
 - La collection memorizza solo i generi, non i libri
@@ -93,6 +94,13 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `http://localhost:3000/nfc?book=book1`
 
 ## Changelog
+
+### 20 maggio 2026 - Metadati narrativi libri
+
+✅ **Catalogo libri:**
+- Aggiunti in `server/data/books.js` i campi `themes` e `narrativeStyles` per i tre libri
+- I nuovi dati restano lato server/API e per ora non vengono mostrati nelle pagine
+- Verificato caricamento del modulo con Node
 
 ### 20 maggio 2026 - UI desktop, navbar, NFC e dashboard
 
