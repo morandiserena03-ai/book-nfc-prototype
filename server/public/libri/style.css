@@ -1,0 +1,150 @@
+*{
+    box-sizing:border-box;
+}
+
+body{
+    min-width:1100px;
+    min-height:100vh;
+    margin:0;
+    padding:150px 50px 70px;
+    color:white;
+    font-family:"PP Monument Wide", sans-serif;
+    background:#05053E;
+    overflow-x:hidden;
+}
+
+.desktopHeader{
+    position:absolute;
+    top:0;
+    left:0;
+    z-index:50;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    width:100%;
+    padding:clamp(30px, 4.4vw, 62px) clamp(22px, 3.5vw, 36px) 0 clamp(40px, 4.2vw, 72px);
+    transform:translateX(-145px);
+    pointer-events:none;
+}
+
+.brandLink,
+.desktopNav{
+    pointer-events:auto;
+}
+
+.brandLink{
+    display:inline-flex;
+    align-items:center;
+    transform:translateX(145px);
+}
+
+.brandLink img{
+    width:clamp(78px, 5.5vw, 108px);
+    height:auto;
+    display:block;
+}
+
+.desktopNav{
+    display:flex;
+    align-items:center;
+    gap:clamp(46px, 6vw, 120px);
+    color:white;
+    font-family:"PP Monument Wide", sans-serif;
+    font-size:clamp(0.9rem, 1vw, 1.18rem);
+    line-height:1;
+}
+
+.desktopNav a{
+    color:white;
+    text-decoration:none;
+    cursor:pointer;
+    opacity:0.96;
+}
+
+.desktopNav a:hover{
+    opacity:0.72;
+}
+
+.booksPage{
+    width:100%;
+}
+
+.title{
+    padding-left: 20px;
+    z-index:20;
+    color:white;
+    font-family:"PP Monument Wide", sans-serif;
+    font-size:3.4rem;
+    line-height:0.9;
+    letter-spacing:-0.04em;
+}
+
+.booksGrid{
+    display:grid;
+    grid-template-columns:repeat(5, 176px);
+    justify-content:space-between;
+    align-items:start;
+    column-gap:64px;
+    row-gap:108px;
+    width:100%;
+    margin-top:46px;
+    padding:0 14px;
+}
+
+.bookCard{
+    display:block;
+    width:176px;
+    color:white;
+    text-decoration:none;
+    transform:rotate(var(--rotation));
+    transform-origin:center 44%;
+}
+
+.bookCard:hover{
+    opacity:0.82;
+}
+
+.bookCover{
+    display:block;
+    width:176px;
+    height:264px;
+    object-fit:cover;
+}
+
+.bookTitle{
+    display:block;
+    margin-top:14px;
+    font-size:1.02rem;
+    line-height:1.02;
+    font-weight:400;
+    text-wrap:balance;
+}
+
+.bookCard:nth-child(5n + 1){
+    --rotation:-3deg;
+}
+
+.bookCard:nth-child(5n + 2){
+    --rotation:4deg;
+}
+
+.bookCard:nth-child(5n + 3){
+    --rotation:-3deg;
+}
+
+.bookCard:nth-child(5n + 4){
+    --rotation:1deg;
+}
+
+.bookCard:nth-child(5n + 5){
+    --rotation:-2deg;
+}
+
+.bookCard:nth-child(10n + 7),
+.bookCard:nth-child(10n + 10){
+    --rotation:-5deg;
+}
+
+.bookCard:nth-child(10n + 8){
+    --rotation:6deg;
+}

@@ -139,6 +139,16 @@ app.get("/mobile", (req, res) => {
     res.sendFile(path.join(__dirname, "public/mobile/index.html"));
 });
 
+// PAGINA CENTRO
+app.get("/centro", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/centro/index.html"));
+});
+
+// PAGINA LIBRI
+app.get("/libri", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/libri/index.html"));
+});
+
 // PAGINA DASHBOARD
 app.get("/dashboard", (req, res) => {
     res.sendFile(path.join(__dirname, "public/dashboard/index.html"));

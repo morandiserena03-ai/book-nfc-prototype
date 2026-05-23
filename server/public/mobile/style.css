@@ -80,12 +80,45 @@ body.loading .title,
 body.loading #userRow,
 body.loading #registerBox,
 body.loading #stickers,
-body.loading .desktopHeader{
+body.loading .desktopHeader,
+body.loading .mobileNav{
     display:none;
 }
 
 .desktopHeader{
     display:none;
+}
+
+.mobileNav{
+    position:absolute;
+    right:calc(var(--app-left) + var(--side-padding));
+    bottom:18px;
+    left:calc(var(--app-left) + var(--side-padding));
+    z-index:40;
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:8px;
+}
+
+.mobileNav a{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:42px;
+    padding:0 5px;
+    border-radius:999px;
+    background:white;
+    color:#05053E;
+    font-family:"PP Monument Wide", sans-serif;
+    font-size:clamp(0.54rem, 2.4vw, 0.68rem);
+    line-height:1;
+    text-align:center;
+    text-decoration:none;
+}
+
+.mobileNav a[aria-current="page"]{
+    background:#050CFF;
+    color:white;
 }
 
 .heroContent{
@@ -282,6 +315,10 @@ button.delete-btn{
         pointer-events:none;
     }
 
+    .mobileNav{
+        display:none;
+    }
+
     .brandLink,
     .desktopNav,
     .booksMenu{
@@ -358,6 +395,8 @@ button.delete-btn{
         align-items:flex-start;
         gap:16px;
         min-width:250px;
+        max-height:calc(100vh - 110px);
+        overflow-y:auto;
         padding:0;
         border-radius:0;
         background:transparent;

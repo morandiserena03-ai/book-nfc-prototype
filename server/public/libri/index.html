@@ -1,8 +1,12 @@
 <!DOCTYPE html>
-<html>
-    <link rel="stylesheet" href="/dashboard/style.css">
+<html lang="it">
 <head>
-    <title>Dashboard</title>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+    <title>Libri</title>
+    <link rel="stylesheet" href="/libri/style.css">
 </head>
 <body>
 
@@ -15,16 +19,16 @@
             <a href="/dashboard">Dashboard</a>
             <a href="/mobile">Mobile</a>
             <a href="/centro">Centro</a>
-            <a href="/libri">Libri</a>
+            <a href="/libri" aria-current="page">Libri</a>
         </nav>
     </header>
 
-    <h1 class="title">Dashboard</h1>
+    <main class="booksPage">
+        <h1 class="title">Libri</h1>
+        <div id="booksGrid" class="booksGrid" aria-live="polite"></div>
+    </main>
 
-    <div id="usersContainer"></div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/dashboard/app.js"></script>
+    <script src="/libri/app.js"></script>
 
 </body>
 </html>

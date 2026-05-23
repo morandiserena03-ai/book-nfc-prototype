@@ -39,10 +39,15 @@
             display: block;
             width: auto;
             max-width: 100%;
-            height: auto;
+            height: 458px;
             margin: 0 0 28px;
             border-radius: 18px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+        @media (max-width: 699px) {
+            .book-cover {
+                height: min(72vw, 330px);
+            }
         }
         button {
             width: 100%;
