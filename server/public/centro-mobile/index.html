@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1">
-    <title>Centro</title>
+        content="width=device-width,
+                 height=device-height,
+                 initial-scale=1,
+                 maximum-scale=1,
+                 user-scalable=no">
+    <title>Centro Mobile</title>
     <link rel="stylesheet" href="/shared/nav.css">
-    <link rel="stylesheet" href="/centro/style.css">
+    <link rel="stylesheet" href="/centro-mobile/style.css">
 </head>
 <body>
 
@@ -19,7 +23,7 @@
         <nav class="desktopNav" aria-label="Navigazione principale">
             <a href="/dashboard">Dashboard</a>
             <a href="/mobile">Mobile</a>
-            <a href="/centro" aria-current="page">Centro</a>
+            <a href="/centro">Centro</a>
             <a href="/libri">Libri</a>
         </nav>
     </header>
@@ -27,16 +31,18 @@
     <nav class="mobileNav" aria-label="Navigazione mobile">
         <a href="/dashboard">Dashboard</a>
         <a href="/mobile">Mobile</a>
-        <a href="/centro-mobile">Centro</a>
+        <a href="/centro-mobile" aria-current="page">Centro</a>
         <a href="/libri">Libri</a>
     </nav>
 
-    <main class="centerPage">
-        <section id="centerUsers" class="centerUsers" aria-label="Utenti nel centro"></section>
+    <main class="centerMobilePage">
+        <h1>Avvicinati a...</h1>
+        <div id="centerUserButtons" class="centerUserButtons" aria-live="polite"></div>
+        <p id="centerMobileMessage" class="centerMobileMessage"></p>
     </main>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/centro/app.js"></script>
+    <script src="/centro-mobile/app.js"></script>
 
 </body>
 </html>

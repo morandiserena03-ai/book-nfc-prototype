@@ -1,0 +1,106 @@
+*{
+    box-sizing:border-box;
+}
+
+@font-face{
+    font-family:"PP Registration Wide";
+    src:url("/fonts/PPMonumentWide-Regular.otf") format("opentype");
+    font-weight:400;
+    font-style:normal;
+    font-display:swap;
+}
+
+@font-face{
+    font-family:"PP Registration Extended";
+    src:url("/fonts/PPMonumentExtended-Black.otf") format("opentype");
+    font-weight:900;
+    font-style:normal;
+    font-display:swap;
+}
+
+:root{
+    --app-width:min(100vw, 430px);
+    --app-left:calc((100vw - var(--app-width)) / 2);
+}
+
+body{
+    min-height:100vh;
+    margin:0;
+    padding:128px 28px 28px;
+    color:white;
+    font-family:"PP Monument Wide", sans-serif;
+    background:#05053E;
+    overflow:hidden;
+}
+
+.desktopHeader,
+.mobileNav{
+    display:none;
+}
+
+.centerMobilePage{
+    display:flex;
+    min-height:calc(100vh - 156px);
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:flex-start;
+    gap:0;
+}
+
+.centerMobilePage h1{
+    position:absolute;
+    top:39px;
+    left:calc(var(--app-left) + 27px);
+    width:min(340px, calc(var(--app-width) - 54px));
+    margin:0;
+    color:#ffffff;
+    font-family:"PP Registration Extended", "PP Monument Wide", sans-serif;
+    font-size:clamp(1.72rem, 7.6vw, 1.95rem);
+    font-weight:900;
+    line-height:0.92;
+    letter-spacing:0;
+}
+
+.centerUserButtons{
+    display:flex;
+    flex-direction:column;
+    gap:34px;
+    align-items:stretch;
+}
+
+.centerUserButtons button{
+    width:100%;
+    min-height:62px;
+    border:0;
+    border-radius:999px;
+    padding:0 20px;
+    background:#9797FD;
+    color:white;
+    font:inherit;
+    font-size:clamp(1.62rem, 7.8vw, 2.35rem);
+    font-weight:800;
+    line-height:1;
+    text-align:center;
+    box-shadow:none;
+    transform-origin:center;
+}
+
+.centerUserButtons button:nth-child(3n + 1){
+    transform:rotate(-2deg);
+}
+
+.centerUserButtons button:nth-child(3n + 2){
+    transform:rotate(1deg);
+}
+
+.centerUserButtons button:nth-child(3n){
+    transform:rotate(-1deg);
+}
+
+.centerMobileMessage{
+    min-height:1.2em;
+    margin:0;
+    color:white;
+    font-size:0.78rem;
+    line-height:1.25;
+}

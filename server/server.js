@@ -37,6 +37,27 @@ app.use('/Icons', express.static(path.join(__dirname, '..', 'Icons')));
 // DATI
 let users = {};
 
+function normalizeCenterOrder() {
+    Object.entries(users)
+        .sort((a, b) => {
+            const orderA = Number.isInteger(a[1].centerOrder) ? a[1].centerOrder : Infinity;
+            const orderB = Number.isInteger(b[1].centerOrder) ? b[1].centerOrder : Infinity;
+
+            return orderA - orderB;
+        })
+        .forEach(([deviceId], index) => {
+            users[deviceId].centerOrder = index;
+        });
+}
+
+function getCenterOrderedIds() {
+    normalizeCenterOrder();
+
+    return Object.entries(users)
+        .sort((a, b) => a[1].centerOrder - b[1].centerOrder)
+        .map(([deviceId]) => deviceId);
+}
+
 function getLastUserId() {
     return Object.keys(users).pop();
 }
@@ -136,6 +157,11 @@ app.get("/centro", (req, res) => {
     res.sendFile(path.join(__dirname, "public/centro/index.html"));
 });
 
+// PAGINA CENTRO MOBILE
+app.get("/centro-mobile", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/centro-mobile/index.html"));
+});
+
 // PAGINA LIBRI
 app.get("/libri", (req, res) => {
     res.sendFile(path.join(__dirname, "public/libri/index.html"));
@@ -144,6 +170,45 @@ app.get("/libri", (req, res) => {
 // PAGINA DASHBOARD
 app.get("/dashboard", (req, res) => {
     res.sendFile(path.join(__dirname, "public/dashboard/index.html"));
+});
+
+app.post("/center/approach", (req, res) => {
+
+    const { deviceId, targetDeviceId } = req.body;
+
+    if (!deviceId || !targetDeviceId || !users[deviceId] || !users[targetDeviceId]) {
+        return res.status(400).json({
+            error: "User not found"
+        });
+    }
+
+    if (deviceId === targetDeviceId) {
+        return res.status(400).json({
+            error: "Target user must be different"
+        });
+    }
+
+    const orderedIds = getCenterOrderedIds();
+    const currentIndex = orderedIds.indexOf(deviceId);
+    const targetIndex = orderedIds.indexOf(targetDeviceId);
+    const movingFromLeft = currentIndex < targetIndex;
+    const nextOrder = orderedIds.filter(id => id !== deviceId);
+    const targetIndexAfterRemoval = nextOrder.indexOf(targetDeviceId);
+    const insertIndex = movingFromLeft ? targetIndexAfterRemoval : targetIndexAfterRemoval + 1;
+
+    nextOrder.splice(insertIndex, 0, deviceId);
+
+    nextOrder.forEach((id, index) => {
+        users[id].centerOrder = index;
+    });
+
+    users[deviceId].approachTargetId = targetDeviceId;
+
+    io.emit("update");
+
+    res.json({
+        success: true
+    });
 });
 
 // REGISTER
@@ -161,7 +226,9 @@ app.post("/register", (req, res) => {
 
     users[deviceId] = {
         nickname,
-        collection: []
+        collection: [],
+        approachTargetId: null,
+        centerOrder: Object.keys(users).length
     };
 
     console.log("REGISTER:", users[deviceId]);
@@ -172,6 +239,7 @@ app.post("/register", (req, res) => {
 });
 
 app.get("/users", (req, res) => {
+    normalizeCenterOrder();
     res.json(users);
 });
 
@@ -188,6 +256,14 @@ app.post("/delete", (req, res) => {
 
     const deletedUser = users[deviceId];
     delete users[deviceId];
+
+    Object.values(users).forEach(user => {
+        if (user.approachTargetId === deviceId) {
+            user.approachTargetId = null;
+        }
+    });
+
+    normalizeCenterOrder();
 
     console.log("DELETE USER:", deletedUser);
 
