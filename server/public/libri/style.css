@@ -13,58 +13,6 @@ body{
     overflow-x:hidden;
 }
 
-.desktopHeader{
-    position:absolute;
-    top:0;
-    left:0;
-    z-index:50;
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    width:100%;
-    padding:clamp(30px, 4.4vw, 62px) clamp(22px, 3.5vw, 36px) 0 clamp(40px, 4.2vw, 72px);
-    transform:translateX(-145px);
-    pointer-events:none;
-}
-
-.brandLink,
-.desktopNav{
-    pointer-events:auto;
-}
-
-.brandLink{
-    display:inline-flex;
-    align-items:center;
-    transform:translateX(145px);
-}
-
-.brandLink img{
-    width:clamp(78px, 5.5vw, 108px);
-    height:auto;
-    display:block;
-}
-
-.desktopNav{
-    display:flex;
-    align-items:center;
-    gap:clamp(46px, 6vw, 120px);
-    color:white;
-    font-family:"PP Monument Wide", sans-serif;
-    font-size:clamp(0.9rem, 1vw, 1.18rem);
-    line-height:1;
-}
-
-.desktopNav a{
-    color:white;
-    text-decoration:none;
-    cursor:pointer;
-    opacity:0.96;
-}
-
-.desktopNav a:hover{
-    opacity:0.72;
-}
-
 .booksPage{
     width:100%;
 }

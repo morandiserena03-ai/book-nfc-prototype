@@ -14,13 +14,16 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `server/public/mobile/` (mobile UI)
 - `server/public/dashboard/` (dashboard realtime)
 - `server/public/nfc/` (pagina NFC unica parametrizzata)
+- `server/public/centro/` (pagina Centro)
+- `server/public/libri/` (griglia catalogo libri)
+- `server/public/shared/nav.css` (stili navbar condivisi)
 - `server/public/books/` (copertine)
 - `server/public/stickers/` (sticker per genere)
 - `Icons/` (logo Book Pride, GIF caricamento, icona cestino)
 
 ## Architettura
 
-- Server Express + Socket.IO su porta `3000`
+- Server Express + Socket.IO su `PORT` ambiente, default `3000`
 - Static files serviti da `server/public`
 - `users` in memoria sul server
 - `localStorage` lato browser per `deviceId` e layout sticker
@@ -32,9 +35,11 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `GET /` → home
 - `GET /mobile` → pagina mobile
 - `GET /dashboard` → dashboard realtime
+- `GET /centro` → pagina Centro
+- `GET /libri` → pagina catalogo libri
 - `GET /nfc` → pagina NFC unica con query `?book=<bookId>`
 - `GET /nfc/:bookId` e `GET /scan/:bookId` → redirect a `/nfc?book=<bookId>`
-- `GET /api/books` → catalogo libri JSON per menu navbar
+- `GET /api/books` → catalogo libri JSON per pagina `/libri` e API interne
 - `GET /api/book/:bookId` → dati libro JSON
 - `POST /register` → registra/aggiorna utente
 - `POST /nfc/confirm` → aggiunge libro all'utente
@@ -52,8 +57,9 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - Se un utente non registrato apre una pagina NFC, vede la GIF di caricamento, un alert di registrazione necessaria e viene mandato a `/mobile`
 - La pagina NFC non mostra più i generi del libro, solo titolo, copertina e bottone di conferma
 - Le schermate di caricamento usano `/Icons/Logo-animato.gif`
-- Navbar desktop condivisa tra mobile e dashboard: logo `BookPride.png` a sinistra, voci `Dashboard`, `Mobile`, `Libri` a destra
-- Il menu `Libri` è hover/focus e mostra link a pillole blu verso `/nfc?book=<bookId>`
+- Navbar desktop/mobile condivisa tra le pagine pubbliche: logo `BookPride.png` a sinistra su desktop e link diretti di navigazione
+- La navbar usa link diretti a `Dashboard`, `Mobile`, `Centro`, `Libri`
+- La pagina `/libri` mostra il catalogo da `GET /api/books` e linka ogni copertina a `/nfc?book=<bookId>`
 
 ## Dettagli implementativi
 
@@ -71,11 +77,13 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 - `POST /delete` cancella l'utente e notifica tutti i client
 - `mobile/app.js` gestisce init, refresh, register, delete e render sticker
 - `dashboard/app.js` mostra gli utenti aggiornati via Socket.IO
+- `shared/nav.css` centralizza gli stili della navbar desktop/mobile usata dalle pagine pubbliche
 - `mobile/index.html` contiene la navbar desktop e il contenuto centrale della pagina
 - `mobile/style.css` ha layout mobile compatto sotto `700px` e layout desktop full-screen sopra `700px`
 - Su desktop mobile, titolo/nickname sono sotto il layer sticker; `#stickers` usa `pointer-events: none` per non bloccare il click sul cestino
-- `dashboard/style.css` contiene la stessa navbar desktop e card utenti con sfondo `#373765`
+- `dashboard/style.css` contiene gli stili specifici della dashboard e card utenti con sfondo `#373765`
 - Le card dashboard sono in griglia con massimo 2 colonne, 1 colonna sotto `800px`
+- `package.json` dichiara solo le dipendenze dirette realmente usate: `cors`, `express`, `socket.io`
 
 ## Limiti attuali
 
@@ -95,6 +103,25 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 
 ## Changelog
 
+### 27 maggio 2026 - Pulizia ridondanze progetto
+
+✅ **Backend:**
+- Rimossi da `server/server.js` il vecchio `POST /scan`, le route duplicate `/scan/:bookId`, `/nfc/:bookId` e `/nfc/:bookId/confirm` basate su `renderNfcConfirmationPage`
+- Rimossa la funzione `escapeHtml`, non più usata dopo il passaggio alla pagina NFC statica
+- Mantenuti i redirect compatibili `GET /nfc/:bookId` e `GET /scan/:bookId` verso `/nfc?book=<bookId>`
+- Il server legge `process.env.PORT` con fallback a `3000`
+
+✅ **Frontend:**
+- Rimossi `loadBooksMenu()` da mobile/dashboard/centro perché la navbar ora usa link diretti e non ha più dropdown dinamico
+- Rimossa la funzione mobile `scan(bookId)`, non più referenziata dall'interfaccia
+- Eliminato `server/public/centro/app.js` perché era vuoto dopo la rimozione del loader menu
+- Aggiunto `server/public/shared/nav.css` per evitare copie dello stesso CSS navbar in mobile, dashboard, centro e libri
+- Sistemato `mobile/index.html` con `lang`, `charset`, `title` e link CSS dentro `<head>`
+
+✅ **Dipendenze:**
+- Ridotto `package.json` alle sole dipendenze dirette (`cors`, `express`, `socket.io`)
+- Aggiornato `package-lock.json` con la nuova lista di dipendenze dirette
+
 ### 20 maggio 2026 - Metadati narrativi libri
 
 ✅ **Catalogo libri:**
@@ -107,11 +134,8 @@ Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra d
 ✅ **Navbar condivisa:**
 - Aggiunta navbar desktop in `/mobile` e `/dashboard`
 - Logo `/Icons/BookPride.png` a sinistra
-- Voci a destra: `Dashboard`, `Mobile`, `Libri`
-- `Libri` apre al passaggio del mouse/focus un menu a tendina con pillole blu
-- Ogni pillola punta alla pagina NFC del libro (`/nfc?book=book1`, ecc.)
-- Aggiunto endpoint `GET /api/books` per popolare dinamicamente il menu libri
-- Link libri statici restano nell'HTML come fallback se il server non è riavviato
+- Le prime versioni usavano un menu libri dinamico; dal 27 maggio 2026 la navbar usa link diretti e gli stili comuni vivono in `server/public/shared/nav.css`
+- `GET /api/books` resta disponibile per catalogo e pagina `/libri`
 
 ✅ **Mobile desktop layout:**
 - Da desktop `/mobile` diventa una scena full-screen Book Pride

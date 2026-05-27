@@ -30,6 +30,7 @@ async function initPage() {
             renderUser(user);
         } else {
             // Utente non trovato, mostra form registrazione
+            showRegistrationView();
             document.getElementById("registerBox").style.display = "block";
             document.getElementById("deleteIconBtn").style.display = "none";
             hidePageLoader();
@@ -43,40 +44,9 @@ async function initPage() {
 
 // Chiama initPage al caricamento
 initPage();
-loadBooksMenu();
 
 function isDesktopLayout() {
     return window.matchMedia("(min-width: 700px)").matches;
-}
-
-async function loadBooksMenu() {
-
-    const dropdown =
-        document.getElementById("booksDropdown");
-
-    if (!dropdown) {
-        return;
-    }
-
-    try {
-        const res = await fetch(`${BASE_URL}/api/books`);
-        const books = await res.json();
-
-        dropdown.innerHTML = "";
-
-        Object.entries(books).forEach(([bookId, book]) => {
-
-            const link =
-                document.createElement("a");
-
-            link.href = `/nfc?book=${encodeURIComponent(bookId)}`;
-            link.textContent = book.title;
-
-            dropdown.appendChild(link);
-        });
-    } catch (err) {
-        console.error("Books menu error:", err);
-    }
 }
 
 function getStickerRect(layout, stickerSize) {
@@ -289,6 +259,7 @@ function createDesktopStickerLayout(placedRects, index, stage, stickerSize) {
 
 function renderUser(user) {
     hidePageLoader();
+    showUserView();
 
     // nickname
     document.getElementById("userNickname").innerText =
@@ -374,6 +345,35 @@ function hidePageLoader() {
     document.body.classList.remove("loading");
 }
 
+function setTitle(lines) {
+    const title = document.querySelector(".title");
+
+    title.textContent = "";
+
+    lines.forEach((line) => {
+        const span = document.createElement("span");
+        span.textContent = line;
+        title.appendChild(span);
+    });
+}
+
+function showRegistrationView() {
+    if (isDesktopLayout()) {
+        showUserView();
+        return;
+    }
+
+    document.body.classList.add("registrationView");
+    setTitle(["Scegli un nickname", "per registrarti"]);
+    document.querySelector("#registerBox button").textContent = "Conferma";
+}
+
+function showUserView() {
+    document.body.classList.remove("registrationView");
+    setTitle(["Benvenut* al", "Book Pride!"]);
+    document.querySelector("#registerBox button").textContent = "Register";
+}
+
 // --------------------
 // REGISTER (GLOBAL)
 // --------------------
@@ -403,34 +403,6 @@ async function registerUser() {
     } catch (err) {
         console.error(err);
         alert("Register error");
-    }
-}
-
-// --------------------
-// SCAN (GLOBAL)
-// --------------------
-async function scan(bookId) {
-
-    try {
-
-        const res = await fetch(`${BASE_URL}/scan`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                deviceId,
-                bookId
-            })
-        });
-
-        const user = await res.json();
-
-        renderUser(user);
-
-    } catch (err) {
-        console.error(err);
-        alert("Scan error");
     }
 }
 
@@ -499,6 +471,7 @@ async function refreshUser() {
             renderUser(user);
         } else {
             // Utente non trovato, reset interfaccia
+            showRegistrationView();
             document.getElementById("userNickname").innerText = "";
             document.getElementById("registerBox").style.display = "block";
             document.getElementById("nickname").value = "";

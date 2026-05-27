@@ -7,6 +7,7 @@ const books = require("./data/books");
 
 const app = express();
 const server = http.createServer(app);
+const PORT = process.env.PORT || 3000;
 
 // Allow Socket.IO connections from the public tunnel host and localhost
 const io = new Server(server, {
@@ -62,15 +63,6 @@ function addBookToUser(user, book) {
     });
 
     io.emit("update");
-}
-
-function escapeHtml(value) {
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
 }
 
 // NFC page now served as static asset in public/nfc/index.html
@@ -179,78 +171,8 @@ app.post("/register", (req, res) => {
     res.json(users[deviceId]);
 });
 
-// SCAN
-app.post("/scan", (req, res) => {
-
-    const { deviceId, bookId } = req.body;
-
-    const user = users[deviceId];
-    const book = books[bookId];
-
-    if (!user || !book) {
-        return res.status(400).json({
-            error: "Invalid user or book"
-        });
-    }
-
-    addBookToUser(user, book);
-
-    console.log("SCAN:", user);
-
-    res.json(user);
-});
-
 app.get("/users", (req, res) => {
     res.json(users);
-});
-
-app.get("/scan/:bookId", (req, res) => {
-
-    const bookId = req.params.bookId;
-
-    const book = books[bookId];
-
-    if (!book) {
-        return res.send("Invalid scan");
-    }
-
-    res.send(renderNfcConfirmationPage(bookId, book));
-});
-
-app.get("/nfc/:bookId", (req, res) => {
-
-    const bookId = req.params.bookId;
-
-    const book = books[bookId];
-
-    if (!book) {
-        return res.send("Book not found");
-    }
-
-    res.send(renderNfcConfirmationPage(bookId, book));
-});
-
-app.post("/nfc/:bookId/confirm", (req, res) => {
-
-    const bookId = req.params.bookId;
-    const { deviceId } = req.body;
-
-    const { deviceId: resolvedDeviceId, user } = getUserForScan(deviceId);
-    const book = books[bookId];
-
-    if (!user || !book) {
-        return res.status(400).json({
-            error: "User or book not found"
-        });
-    }
-
-    addBookToUser(user, book);
-
-    console.log("NFC CONFIRMED:", resolvedDeviceId, user);
-
-    res.json({
-        success: true
-    });
 });
 
 // DELETE USER
@@ -278,6 +200,6 @@ app.post("/delete", (req, res) => {
 });
 
 // START SERVER
-server.listen(3000, "0.0.0.0", () => {
-    console.log("Server running on port 3000");
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
 });
