@@ -3,6 +3,7 @@
 }
 
 body{
+    --aura-sticker-base-size:clamp(40px, 4.6vw, 68px);
     min-height:100vh;
     margin:0;
     padding:150px 50px 0;
@@ -25,13 +26,203 @@ body{
     min-height:340px;
 }
 
+.bookMatchPanel{
+    position:absolute;
+    top:0;
+    left:50%;
+    z-index:30;
+    width:min(760px, 92vw);
+    padding:18px 20px 20px;
+    border:1px solid rgba(151, 151, 253, 0.45);
+    border-radius:8px;
+    background:rgba(5, 5, 62, 0.88);
+    box-shadow:0 18px 55px rgba(0, 0, 0, 0.28);
+    transform:translateX(-50%);
+    backdrop-filter:blur(16px);
+}
+
+.bookMatchPanel[hidden]{
+    display:none;
+}
+
+.bookMatchStatus{
+    margin:0;
+    color:#9797FD;
+    font-size:0.72rem;
+    line-height:1.25;
+    letter-spacing:0;
+    text-transform:uppercase;
+}
+
+.bookMatchTitle{
+    margin:8px 0 0;
+    color:#fff;
+    font-size:clamp(1.25rem, 2.4vw, 2rem);
+    line-height:1.05;
+    letter-spacing:0;
+}
+
+.bookMatchBooks{
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    gap:14px;
+    align-items:center;
+    margin-top:12px;
+}
+
+.bookMatchBook{
+    display:grid;
+    grid-template-columns:auto minmax(0, 1fr);
+    gap:10px 12px;
+    align-items:center;
+    min-width:0;
+}
+
+.bookMatchUser{
+    display:block;
+    grid-column:2;
+    color:#9797FD;
+    font-size:0.72rem;
+    line-height:1.2;
+    letter-spacing:0;
+}
+
+.bookMatchCover{
+    grid-row:1 / span 2;
+    width:clamp(54px, 6vw, 78px);
+    height:auto;
+    aspect-ratio:2 / 3;
+    border-radius:2px;
+    object-fit:cover;
+    box-shadow:0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.bookMatchBookTitle{
+    display:block;
+    grid-column:2;
+    margin-top:5px;
+    overflow-wrap:anywhere;
+    color:#fff;
+    font-size:0.92rem;
+    line-height:1.2;
+    letter-spacing:0;
+}
+
+.bookMatchConnector{
+    width:42px;
+    height:1px;
+    background:#fff;
+    opacity:0.72;
+}
+
+.bookMatchTags{
+    display:grid;
+    gap:10px;
+    margin-top:16px;
+}
+
+.bookMatchRow{
+    display:grid;
+    grid-template-columns:126px minmax(0, 1fr);
+    gap:12px;
+    align-items:center;
+}
+
+.bookMatchRowLabel{
+    color:#9797FD;
+    font-size:0.68rem;
+    line-height:1.15;
+    letter-spacing:0;
+    text-transform:uppercase;
+}
+
+.bookMatchRowItems{
+    display:flex;
+    flex-wrap:wrap;
+    gap:9px;
+    align-items:center;
+    min-width:0;
+}
+
+.bookMatchKeywordGroup{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-items:center;
+    min-width:0;
+    padding-right:8px;
+    border-right:1px solid rgba(255, 255, 255, 0.32);
+}
+
+.bookMatchTag,
+.bookMatchSourceKeyword{
+    max-width:100%;
+    padding:8px 11px 9px;
+    border-radius:999px;
+    color:#fff;
+    font-size:0.76rem;
+    font-weight:700;
+    line-height:1;
+    letter-spacing:0;
+    overflow-wrap:anywhere;
+}
+
+.bookMatchSourceKeyword{
+    opacity:0.88;
+    padding:6px 8px 7px;
+    font-size:0.68rem;
+}
+
+.bookMatchTagBlue{
+    background:#0000FF;
+}
+
+.bookMatchTagLavender{
+    background:#9797FD;
+}
+
+.bookMatchTagAffinity{
+    background:#fff;
+    color:#0000FF;
+}
+
+.bookMatchSticker{
+    width:clamp(40px, 4.7vw, 64px);
+    height:auto;
+    aspect-ratio:1 / 1;
+    object-fit:contain;
+    transform:rotate(-8deg);
+}
+
+.bookMatchSticker:nth-child(even){
+    transform:rotate(9deg);
+}
+
 .centerUser{
     position:absolute;
-    bottom:0;
+    bottom:20px;
+    --center-user-scale:1;
     width:clamp(220px, 20.5vw, 310px);
     min-width:0;
     transform:translateX(-50%);
     transition:left 0.75s ease;
+}
+
+.centerUserAura{
+    position:absolute;
+    top:-88%;
+    left:50%;
+    z-index:4;
+    width:205%;
+    height:145%;
+    pointer-events:none;
+    transform:translateX(-50%);
+}
+
+@media (prefers-reduced-motion:reduce){
+    .centerUser{
+        transition:none;
+    }
 }
 
 .centerUserShape{
@@ -44,16 +235,79 @@ body{
 .centerUserNickname{
     position:absolute;
     bottom:16%;
-    z-index:2;
+    z-index:5;
     width:44%;
     margin:0;
     overflow-wrap:anywhere;
     color:#000;
-    font-size:clamp(0.62rem, 0.85vw, 0.86rem);
+    font-size:calc(clamp(0.62rem, 0.85vw, 0.86rem) * var(--center-user-scale));
     line-height:1;
     letter-spacing:0;
     text-align:left;
     pointer-events:none;
+}
+
+.auraBook,
+.auraKeyword,
+.auraLooseSticker{
+    position:absolute;
+    transform-origin:center;
+}
+
+.auraBook{
+    width:calc(clamp(46px, 5.1vw, 72px) * var(--center-user-scale));
+}
+
+.auraBookCover{
+    display:block;
+    width:100%;
+    height:auto;
+    aspect-ratio:2 / 3;
+    border-radius:2px;
+    object-fit:cover;
+}
+
+.auraSticker{
+    position:absolute;
+    width:calc(var(--aura-sticker-base-size) * var(--center-user-scale));
+    height:auto;
+    aspect-ratio:1 / 1;
+    object-fit:contain;
+    transform-origin:center;
+}
+
+.auraLooseSticker{
+    width:calc(var(--aura-sticker-base-size) * var(--center-user-scale));
+    height:auto;
+    aspect-ratio:1 / 1;
+    object-fit:contain;
+}
+
+.auraKeyword{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:max-content;
+    min-width:0;
+    max-width:min(calc(275px * var(--center-user-scale)), 48vw);
+    padding:calc(0.5em * var(--center-user-scale)) calc(1.02em * var(--center-user-scale)) calc(0.54em * var(--center-user-scale));
+    border-radius:999px;
+    color:#fff;
+    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-user-scale));
+    font-weight:700;
+    line-height:1;
+    letter-spacing:0;
+    text-align:center;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.auraKeywordBlue{
+    background:#0000FF;
+}
+
+.auraKeywordLavender{
+    background:#9797FD;
 }
 
 .centerUserLeft .centerUserNickname{
@@ -82,11 +336,50 @@ body{
         min-height:260px;
     }
 
+    .bookMatchPanel{
+        top:0;
+        padding:14px 14px 16px;
+    }
+
+    .bookMatchBooks{
+        grid-template-columns:1fr;
+        gap:10px;
+    }
+
+    .bookMatchBook{
+        grid-template-columns:auto minmax(0, 1fr);
+    }
+
+    .bookMatchRow{
+        grid-template-columns:1fr;
+        gap:7px;
+    }
+
+    .bookMatchConnector{
+        width:1px;
+        height:24px;
+        justify-self:center;
+    }
+
     .centerUser{
+        bottom:20px;
         width:210px;
     }
 
+    .centerUserAura{
+        top:-88%;
+        width:250%;
+        height:128%;
+    }
+
+    .auraKeyword{
+        max-width:188px;
+        min-width:0;
+        padding:calc(0.52em * var(--center-user-scale)) calc(1em * var(--center-user-scale)) calc(0.56em * var(--center-user-scale));
+        font-size:calc(0.65rem * var(--center-user-scale));
+    }
+
     .centerUserNickname{
-        font-size:0.62rem;
+        font-size:calc(0.62rem * var(--center-user-scale));
     }
 }

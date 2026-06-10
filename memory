@@ -1,228 +1,92 @@
 # Book NFC Prototype - Memory
 
-## Scopo del progetto
+## Scopo
 
-Prototipo per un'esperienza Book Pride basata su URL NFC. L'utente si registra da una pagina mobile, conferma un libro tramite una pagina NFC dedicata, riceve sticker legati ai generi del libro e la dashboard mostra gli utenti aggiornati in tempo reale.
+Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma libri da pagine NFC, riceve sticker legati ai generi e viene mostrato in tempo reale su dashboard e pagina Centro.
 
-## Struttura del progetto
+## Stack e avvio
 
-- `package.json`
-- `server/server.js`
-- `server/data/books.js`
-- `server/data/genres.js`
-- `server/public/index.html`
-- `server/public/mobile/` (mobile UI)
-- `server/public/dashboard/` (dashboard realtime)
-- `server/public/nfc/` (pagina NFC unica parametrizzata)
-- `server/public/centro/` (pagina Centro)
-- `server/public/libri/` (griglia catalogo libri)
-- `server/public/shared/nav.css` (stili navbar condivisi)
-- `server/public/books/` (copertine)
-- `server/public/stickers/` (sticker per genere)
-- `Icons/` (logo Book Pride, GIF caricamento, icona cestino)
+- Backend: Express + Socket.IO, porta `process.env.PORT` o `3000`.
+- Static files: `server/public`.
+- Stato utenti: oggetto `users` in memoria, perso al riavvio.
+- Persistenza browser: `localStorage` per `deviceId` e layout sticker.
+- Avvio: `npm start`.
+- URL utili: `/mobile`, `/dashboard`, `/centro`, `/centro-mobile`, `/libri`, `/nfc?book=book1`.
 
-## Architettura
+## Struttura principale
 
-- Server Express + Socket.IO su `PORT` ambiente, default `3000`
-- Static files serviti da `server/public`
-- `users` in memoria sul server
-- `localStorage` lato browser per `deviceId` e layout sticker
-- Socket.IO invia `update` quando cambia una collection
-- Mobile/dashboard ricaricano i dati da `GET /users`
+- `server/server.js`: server, API, route, stato utenti e Socket.IO.
+- `server/data/books.js`: fonte unica del catalogo libri.
+- `server/data/genres.js`: dati generi, non usato ovunque.
+- `server/public/mobile/`: registrazione, collezione e sticker utente.
+- `server/public/nfc/`: pagina NFC unica parametrizzata.
+- `server/public/dashboard/`: dashboard realtime.
+- `server/public/centro/`: visualizzazione Centro desktop.
+- `server/public/centro-mobile/`: controlli mobile per avvicinarsi ad altri utenti.
+- `server/public/libri/`: catalogo libri.
+- `server/public/shared/nav.css`: navbar condivisa.
+- `server/public/books/`: copertine.
+- `server/public/stickers/`: sticker per genere.
+- `Icons/`: logo, GIF caricamento, icona cestino.
 
-### Route principali
+## Route e API
 
-- `GET /` → home
-- `GET /mobile` → pagina mobile
-- `GET /dashboard` → dashboard realtime
-- `GET /centro` → pagina Centro
-- `GET /libri` → pagina catalogo libri
-- `GET /nfc` → pagina NFC unica con query `?book=<bookId>`
-- `GET /nfc/:bookId` e `GET /scan/:bookId` → redirect a `/nfc?book=<bookId>`
-- `GET /api/books` → catalogo libri JSON per pagina `/libri` e API interne
-- `GET /api/book/:bookId` → dati libro JSON
-- `POST /register` → registra/aggiorna utente
-- `POST /nfc/confirm` → aggiunge libro all'utente
-- `POST /delete` → elimina account
+- `GET /` -> home statica.
+- `GET /mobile` -> pagina mobile.
+- `GET /dashboard` -> dashboard realtime.
+- `GET /centro` -> pagina Centro.
+- `GET /centro-mobile` -> pagina mobile per interazioni Centro.
+- `GET /libri` -> catalogo libri.
+- `GET /nfc?book=<bookId>` -> pagina NFC unica.
+- `GET /nfc/:bookId`, `GET /scan/:bookId` -> redirect a `/nfc?book=<bookId>`.
+- `GET /api/books` -> catalogo completo.
+- `GET /api/book/:bookId` -> dati di un libro.
+- `GET /users` -> utenti normalizzati con `centerOrder` e `savedBooks`.
+- `POST /register` -> crea/aggiorna utente.
+- `POST /nfc/confirm` -> aggiunge libro e generi all'utente.
+- `POST /center/approach` -> riordina gli utenti del Centro avvicinando un utente a un altro.
+- `POST /delete` -> elimina utente, pulisce riferimenti `approachTargetId` e notifica i client.
 
-## Funzionalità
+## Modello dati
 
-- Registrazione mobile con `nickname` e `deviceId` persistente
-- Collezione di sticker basata sui generi dei libri
-- Pagina NFC unica parametrizzata da `bookId`
-- Dashboard realtime che mostra gli utenti e le loro collection
-- Funzione di cancellazione account
-- Layout sticker persistente in `localStorage`
-- Redirect automatico a `/mobile` dopo conferma NFC
-- Se un utente non registrato apre una pagina NFC, vede la GIF di caricamento, un alert di registrazione necessaria e viene mandato a `/mobile`
-- La pagina NFC non mostra più i generi del libro, solo titolo, copertina e bottone di conferma
-- Le schermate di caricamento usano `/Icons/Logo-animato.gif`
-- Navbar desktop/mobile condivisa tra le pagine pubbliche: logo `BookPride.png` a sinistra su desktop e link diretti di navigazione
-- La navbar usa link diretti a `Dashboard`, `Mobile`, `Centro`, `Libri`
-- La pagina `/libri` mostra il catalogo da `GET /api/books` e linka ogni copertina a `/nfc?book=<bookId>`
+- `books[bookId]` contiene: `title`, `author`, `coverImage`, `genres`, `narrativeStyles`, `topic`, `plot`, `protagonists`, `characters`, `temporalSetting`, `geographicSetting`, `moral`.
+- `users[deviceId]` contiene:
+  - `nickname`
+  - `collection`: generi raccolti, usati per sticker legacy/mobile.
+  - `savedBooks`: id dei libri confermati via NFC.
+  - `approachTargetId`: utente scelto da `/centro-mobile`.
+  - `centerOrder`: ordine orizzontale nella pagina Centro.
+- `POST /nfc/confirm` aggiunge `bookId` a `savedBooks` una sola volta, ma aggiunge i generi del libro a `collection`.
 
-## Dettagli implementativi
+## Funzionalita attuali
 
-- Il server importa i libri da `server/data/books.js`
-- Ogni libro in `server/data/books.js` contiene anche metadati non mostrati in UI: `themes` (keyword tematiche/narrative) e `narrativeStyles` (stili narrativi)
-- `users` è un oggetto in memoria: `users[deviceId] = { nickname, collection: [] }`
-- La pagina NFC recupera il libro via API e invia `{ deviceId, bookId }`
-- La collection memorizza solo i generi, non i libri
-- Gli sticker vengono caricati da `/stickers/<genre>.png`
+- Registrazione mobile con `nickname` e `deviceId` persistente.
+- Conferma NFC con redirect automatico a `/mobile`.
+- Utente non registrato su NFC: GIF `/Icons/Logo-animato.gif`, alert e redirect a `/mobile`.
+- Pagina NFC mostra titolo, copertina e conferma, senza generi.
+- Dashboard aggiornata via Socket.IO.
+- Cancellazione account da mobile con `/Icons/Cestino.png`.
+- Pagina `/libri` carica `GET /api/books` e linka le copertine a `/nfc?book=<bookId>`.
+- Navbar condivisa con logo `/Icons/BookPride.png`; su mobile la pagina `/mobile` mostra solo il link Centro nella nav inferiore.
+- Pagina Centro desktop mostra gli utenti ordinati e ridimensionati in base allo spazio disponibile.
+- La visualizzazione Centro alterna forme sinistra/destra in base alla direzione di avvicinamento.
+- Aura Centro: mostra copertine, sticker e keyword tratte dai metadati dei libri salvati; evita collisioni con forme, nickname e altri elementi per quanto possibile.
+- `/centro-mobile` mostra gli altri utenti e permette di scegliere a chi avvicinarsi; la scelta aggiorna il Centro in realtime.
 
-## Stato attuale
+## Note implementative
 
-- `server/public/nfc/index.html` è la pagina NFC unica
-- `POST /nfc/confirm` gestisce l'aggiunta libro
-- `POST /delete` cancella l'utente e notifica tutti i client
-- `mobile/app.js` gestisce init, refresh, register, delete e render sticker
-- `dashboard/app.js` mostra gli utenti aggiornati via Socket.IO
-- `shared/nav.css` centralizza gli stili della navbar desktop/mobile usata dalle pagine pubbliche
-- `mobile/index.html` contiene la navbar desktop e il contenuto centrale della pagina
-- `mobile/style.css` ha layout mobile compatto sotto `700px` e layout desktop full-screen sopra `700px`
-- Su desktop mobile, titolo/nickname sono sotto il layer sticker; `#stickers` usa `pointer-events: none` per non bloccare il click sul cestino
-- `dashboard/style.css` contiene gli stili specifici della dashboard e card utenti con sfondo `#373765`
-- Le card dashboard sono in griglia con massimo 2 colonne, 1 colonna sotto `800px`
-- `package.json` dichiara solo le dipendenze dirette realmente usate: `cors`, `express`, `socket.io`
+- Socket.IO emette `update` dopo registrazione, conferma NFC, avvicinamento Centro e cancellazione.
+- `normalizeCenterOrder()` compatta l'ordine dopo cancellazioni o dati incompleti.
+- `GET /users` garantisce `savedBooks: []` anche per utenti legacy.
+- Il Centro carica prima `/api/books`, poi `/users`, e ricalcola layout al resize.
+- Gli sticker sono caricati da `/stickers/<GenereCapitalizzato>.png`.
+- Le copertine aura sono caricate da `/books/<coverImage>`.
+- La collisione dell'aura usa bounding box e, quando possibile, maschera alpha dell'immagine forma.
 
-## Limiti attuali
+## Limiti
 
-- Nessuna persistenza su database
-- `users` viene perso al riavvio
-- `collection` contiene generi testuali
-- `genres.js` esiste ma non è usato per tutte le risoluzioni sticker
-- Mancano test automatici
-- Dopo modifiche a `server/server.js`, riavviare il server perché gli endpoint nuovi come `/api/books` siano disponibili
-
-## Comandi utili
-
-- `npm start`
-- `http://localhost:3000/mobile`
-- `http://localhost:3000/dashboard`
-- `http://localhost:3000/nfc?book=book1`
-
-## Changelog
-
-### 27 maggio 2026 - Pulizia ridondanze progetto
-
-✅ **Backend:**
-- Rimossi da `server/server.js` il vecchio `POST /scan`, le route duplicate `/scan/:bookId`, `/nfc/:bookId` e `/nfc/:bookId/confirm` basate su `renderNfcConfirmationPage`
-- Rimossa la funzione `escapeHtml`, non più usata dopo il passaggio alla pagina NFC statica
-- Mantenuti i redirect compatibili `GET /nfc/:bookId` e `GET /scan/:bookId` verso `/nfc?book=<bookId>`
-- Il server legge `process.env.PORT` con fallback a `3000`
-
-✅ **Frontend:**
-- Rimossi `loadBooksMenu()` da mobile/dashboard/centro perché la navbar ora usa link diretti e non ha più dropdown dinamico
-- Rimossa la funzione mobile `scan(bookId)`, non più referenziata dall'interfaccia
-- Eliminato `server/public/centro/app.js` perché era vuoto dopo la rimozione del loader menu
-- Aggiunto `server/public/shared/nav.css` per evitare copie dello stesso CSS navbar in mobile, dashboard, centro e libri
-- Sistemato `mobile/index.html` con `lang`, `charset`, `title` e link CSS dentro `<head>`
-
-✅ **Dipendenze:**
-- Ridotto `package.json` alle sole dipendenze dirette (`cors`, `express`, `socket.io`)
-- Aggiornato `package-lock.json` con la nuova lista di dipendenze dirette
-
-### 20 maggio 2026 - Metadati narrativi libri
-
-✅ **Catalogo libri:**
-- Aggiunti in `server/data/books.js` i campi `themes` e `narrativeStyles` per i tre libri
-- I nuovi dati restano lato server/API e per ora non vengono mostrati nelle pagine
-- Verificato caricamento del modulo con Node
-
-### 20 maggio 2026 - UI desktop, navbar, NFC e dashboard
-
-✅ **Navbar condivisa:**
-- Aggiunta navbar desktop in `/mobile` e `/dashboard`
-- Logo `/Icons/BookPride.png` a sinistra
-- Le prime versioni usavano un menu libri dinamico; dal 27 maggio 2026 la navbar usa link diretti e gli stili comuni vivono in `server/public/shared/nav.css`
-- `GET /api/books` resta disponibile per catalogo e pagina `/libri`
-
-✅ **Mobile desktop layout:**
-- Da desktop `/mobile` diventa una scena full-screen Book Pride
-- Titolo `Benvenut* al Book Pride!` e nickname sono centrati
-- Sticker distribuiti intorno al contenuto centrale
-- Sticker sopra titolo/nickname visivamente, ma `#stickers` non intercetta click (`pointer-events: none`)
-- Cestino `/Icons/Cestino.png` vicino al nickname cancella l'utente tramite `deleteUser()`
-- Layout mobile compatto mantenuto sotto `700px`
-
-✅ **Dashboard:**
-- Aggiunta navbar come nella mobile desktop
-- Card utenti con angoli smussati, nessun bordo e sfondo `#373765`
-- Card utenti in massimo 2 colonne, 1 colonna su viewport stretto
-- Dashboard continua ad aggiornarsi via Socket.IO
-
-✅ **NFC e registrazione:**
-- Utente non registrato che apre NFC: GIF `Logo-animato.gif`, alert registrazione necessaria, redirect a `/mobile`
-- NFC usa GIF di caricamento prima di mostrare contenuti
-- Rimossi i generi dalla pagina di aggiunta libro NFC
-- Dopo conferma libro, messaggio di successo e redirect a `/mobile`
-
-✅ **Asset usati:**
-- `/Icons/BookPride.png` per logo
-- `/Icons/Logo-animato.gif` per caricamenti
-- `/Icons/Cestino.png` per eliminazione utente
-
-- 15 maggio 2026: refactor NFC su pagina unica, aggiunta delete account, redirect automatico dopo conferma, pulizia duplicazioni dati
-✅ **Ridondanze eliminate:**
-- Rimosso catalogo `books` inline da `server/server.js` (duplicazione)
-- Eliminato file `server/data/users.js` (era vuoto e non usato)
-
-✅ **Refactoring:**
-- `server/server.js` ora importa `books` da `server/data/books.js` (fonte singola per catalogo)
-- Sintassi server verificata con `node --check` ✓
-
-✅ **Script npm:**
-- `npm start` già presente in `package.json`
-- Comando: `npm start` avvia il server sulla porta 3000
-
-### 15 maggio 2026 - Funzione cancellazione utente
-
-✅ **Backend (server.js):**
-- Aggiunto endpoint `POST /delete` che:
-  - Riceve `deviceId` da body
-  - Cancella l'utente da memoria
-  - Emette "update" via Socket.IO
-  - Ritorna `{ success: true }`
-
-✅ **Frontend (mobile):**
-- Aggiunta funzione `deleteUser()` che chiama `POST /delete`
-- Richiesta conferma prima di cancellare
-- Pulisce `localStorage` (deviceId e stickerLayout)
-- Ricarica la pagina per generare nuovo deviceId
-- Aggiunta funzione `initPage()` al caricamento pagina che:
-  - Chiama `GET /users`
-  - Se utente registrato → carica i dati
-  - Se non registrato → mostra form
-  - **RISOLTO:** Ora ricaricando la pagina riconosce l'utente già registrato
-
-✅ **UI (index.html):**
-- La UI attuale usa `#deleteIconBtn` con icona `/Icons/Cestino.png`
-- Il pulsante è visibile solo quando l'utente è registrato
-- Dopo cancellazione viene nascosto e la pagina viene ricaricata
-
-### 15 maggio 2026 - Redirect dopo aggiunta libro
-
-✅ **Pagina NFC (server.js):**
-- Dopo aggiunta libro alla collection, mostra "Aggiunto in libreria" per 2 secondi
-- Poi reindirizza automaticamente a `/mobile` (pagina collezione)
-- User vede il messaggio di conferma prima di tornare indietro
-
-### 15 maggio 2026 - NFC single page parametrizzata
-
-✅ **Nuova pagina NFC statica:** `server/public/nfc/index.html`
-- Una sola pagina per tutti i libri
-- Riceve l'id del libro nel parametro query `book`
-- Esempio: `/nfc?book=book1`
-
-✅ **API libro:**
-- Aggiunto endpoint `GET /api/book/:bookId`
-- La pagina NFC carica i dettagli del libro dinamicamente
-
-✅ **Compatibilità URL vecchie:**
-- `GET /nfc/:bookId` ora reindirizza a `/nfc?book=<bookId>`
-- `GET /scan/:bookId` fa lo stesso reindirizzamento
-
-✅ **Conferma libro:**
-- `POST /nfc/confirm` riceve `{ deviceId, bookId }`
-- Aggiunge i generi del libro alla collection dell'utente
-- Emette evento `update` via Socket.IO
+- Nessun database o persistenza server-side.
+- Nessun test automatico.
+- `collection` puo contenere generi duplicati.
+- `genres.js` non e la fonte unica per tutte le risoluzioni sticker.
+- Dopo modifiche a `server/server.js` serve riavviare il server.

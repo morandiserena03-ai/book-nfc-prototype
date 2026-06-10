@@ -17,6 +17,14 @@
     gap:8px;
 }
 
+.mobileNavCenterOnly{
+    left:50%;
+    right:auto;
+    grid-template-columns:minmax(126px, 1fr);
+    width:min(190px, calc(var(--app-width, 100vw) - 36px));
+    transform:translateX(-50%);
+}
+
 .mobileNav a{
     display:flex;
     align-items:center;
