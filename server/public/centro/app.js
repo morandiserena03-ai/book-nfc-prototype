@@ -20,6 +20,7 @@ const SHAPE_PROTECTION_MARGIN = 3;
 const TWO_USER_POSITION_MIN = 24;
 const TWO_USER_POSITION_MAX = 76;
 const AURA_GAP = 18;
+const TWO_USER_VISUAL_SCALE = 0.85;
 const MULTI_USER_MAX_SCALE = 1.2;
 const MULTI_USER_MIN_EDGE_PERCENT = 8;
 const MULTI_USER_MAX_EDGE_PERCENT = 17;
@@ -40,6 +41,7 @@ let booksById = {};
 let latestUsers = {};
 let auraTimersStarted = false;
 let bookMatchHideTimer = null;
+let currentBookMatchEvent = null;
 const shapeMasks = new Map();
 
 socket.on("update", () => {
@@ -51,7 +53,7 @@ socket.on("bookMatchStarted", event => {
 });
 
 socket.on("bookMatch", event => {
-    showBookMatchResult(event.match);
+    showBookMatchResult(event);
 });
 
 socket.on("bookMatchError", () => {
@@ -80,6 +82,14 @@ function renderUsers(users) {
     const basePositions = getBasePositions(userList, centerLayout);
     const orderedIds = userList.map(([deviceId]) => deviceId);
     const currentIds = new Set(userList.map(([deviceId]) => deviceId));
+
+    const isTwoUserCenter = userList.length === 2;
+    const twoUserVisualScale = isTwoUserCenter ? TWO_USER_VISUAL_SCALE : 1;
+
+    document.body.classList.toggle("centerTwoUsers", isTwoUserCenter);
+    document.body.style.setProperty("--center-visual-scale", twoUserVisualScale);
+    document.body.style.setProperty("--center-keyword-scale", centerLayout.scale);
+    document.body.style.setProperty("--match-user-scale", centerLayout.scale * twoUserVisualScale);
 
     container.querySelectorAll(".centerUser").forEach(figure => {
         if (!currentIds.has(figure.dataset.deviceId)) {
@@ -127,6 +137,7 @@ function renderUsers(users) {
     });
 
     startAuraTimer();
+    updateVisibleBookMatchPosition();
 }
 
 function updateShapeImage(figure, shapeSrc, user) {
@@ -147,6 +158,7 @@ function getCenterLayout(container, userCount) {
     const containerWidth = container.getBoundingClientRect().width || window.innerWidth;
     const auraWidthRatio = window.matchMedia("(max-width:699px)").matches ? 2.5 : 2.05;
     const preferredWidth = getPreferredUserWidth();
+    const twoUserCompression = window.matchMedia("(max-width:699px)").matches ? 0.94 : 0.88;
     const positionBounds = getCenterPositionBounds(userCount);
     const requestedSpan = positionBounds.max - positionBounds.min;
     const centerGap = userCount <= 1
@@ -157,7 +169,9 @@ function getCenterLayout(container, userCount) {
         ? preferredWidth
         : Math.max(0, (centerGap - AURA_GAP) / auraWidthRatio);
     const maxWidthWithinPageEdges = Math.max(0, (edgeGap - AURA_GAP) / auraWidthRatio);
-    const maxPreferredWidth = userCount > 2 ? preferredWidth * MULTI_USER_MAX_SCALE : preferredWidth;
+    const maxPreferredWidth = userCount === 2
+        ? preferredWidth * twoUserCompression
+        : (userCount > 2 ? preferredWidth * MULTI_USER_MAX_SCALE : preferredWidth);
     const figureWidth = Math.min(maxPreferredWidth, maxWidthWithoutAuraOverlap, maxWidthWithinPageEdges);
     const scale = Math.min(1, figureWidth / preferredWidth);
 
@@ -382,54 +396,30 @@ function showBookMatchLoading(event) {
         return;
     }
 
+    currentBookMatchEvent = null;
     clearBookMatchTimer();
     panel.replaceChildren();
-    panel.hidden = false;
-
-    const status = document.createElement("p");
-    status.classList.add("bookMatchStatus");
-    status.textContent = "Match in corso";
-
-    const title = document.createElement("h2");
-    title.classList.add("bookMatchTitle");
-    title.textContent = `${event.user_1} + ${event.user_2}`;
-
-    panel.append(status, title);
+    panel.hidden = true;
 }
 
-function showBookMatchResult(match) {
+function showBookMatchResult(event) {
     const panel = document.getElementById("bookMatchPanel");
+    const match = event && event.match;
 
     if (!panel || !match) {
         return;
     }
 
+    currentBookMatchEvent = event;
     clearBookMatchTimer();
     panel.replaceChildren();
     panel.hidden = false;
 
-    const status = document.createElement("p");
-    status.classList.add("bookMatchStatus");
-    status.textContent = "Connessione trovata";
-
-    const books = document.createElement("div");
-    books.classList.add("bookMatchBooks");
-    books.append(
-        createBookMatchBook(match.user_1, match.book_1),
-        createBookMatchConnector(),
-        createBookMatchBook(match.user_2, match.book_2)
-    );
-
-    const tags = createBookMatchTags(match.matches);
-
-    panel.append(status, books);
-
-    if (tags) {
-        panel.appendChild(tags);
-    }
+    panel.appendChild(createBookMatchScene(match, getBookMatchSceneAnchor(event)));
 
     bookMatchHideTimer = setTimeout(() => {
         panel.hidden = true;
+        currentBookMatchEvent = null;
     }, 18000);
 }
 
@@ -440,6 +430,7 @@ function showBookMatchError() {
         return;
     }
 
+    currentBookMatchEvent = null;
     clearBookMatchTimer();
     panel.replaceChildren();
     panel.hidden = false;
@@ -466,32 +457,44 @@ function clearBookMatchTimer() {
     }
 }
 
-function createBookMatchBook(userName, bookTitle) {
-    const wrapper = document.createElement("div");
-    wrapper.classList.add("bookMatchBook");
-    const resolvedBook = getBookFromMatchValue(bookTitle);
+function getBookMatchSceneAnchor(event) {
+    const userCount = Object.keys(latestUsers).length;
 
-    const user = document.createElement("span");
-    user.classList.add("bookMatchUser");
-    user.textContent = userName || "";
-
-    if (resolvedBook && resolvedBook.coverImage) {
-        const cover = document.createElement("img");
-        cover.classList.add("bookMatchCover");
-        cover.alt = resolvedBook.title || "";
-        cover.src = `/books/${encodeURIComponent(resolvedBook.coverImage)}`;
-        wrapper.appendChild(cover);
+    if (userCount <= 2 || !event || !event.deviceId || !event.targetDeviceId) {
+        return 50;
     }
 
-    const book = document.createElement("span");
-    book.classList.add("bookMatchBookTitle");
-    book.textContent = resolvedBook && resolvedBook.title
-        ? resolvedBook.title
-        : getReadableBookMatchValue(bookTitle);
+    const firstFigure = getCenterUserFigure(event.deviceId);
+    const secondFigure = getCenterUserFigure(event.targetDeviceId);
+    const panel = document.getElementById("bookMatchPanel");
 
-    wrapper.append(user, book);
+    if (!firstFigure || !secondFigure || !panel) {
+        return 50;
+    }
 
-    return wrapper;
+    const panelRect = panel.getBoundingClientRect();
+    const firstRect = firstFigure.getBoundingClientRect();
+    const secondRect = secondFigure.getBoundingClientRect();
+    const midpoint = ((firstRect.left + (firstRect.width / 2)) + (secondRect.left + (secondRect.width / 2))) / 2;
+    const anchor = ((midpoint - panelRect.left) / panelRect.width) * 100;
+
+    return Math.min(92, Math.max(8, anchor));
+}
+
+function getCenterUserFigure(deviceId) {
+    return [...document.querySelectorAll(".centerUser")].find(figure => {
+        return figure.dataset.deviceId === deviceId;
+    }) || null;
+}
+
+function updateVisibleBookMatchPosition() {
+    const scene = document.querySelector(".bookMatchScene");
+
+    if (!scene || !currentBookMatchEvent) {
+        return;
+    }
+
+    scene.style.setProperty("--book-match-anchor", `${getBookMatchSceneAnchor(currentBookMatchEvent)}%`);
 }
 
 function getBookFromMatchValue(value) {
@@ -516,112 +519,6 @@ function getReadableBookMatchValue(value) {
     return value;
 }
 
-function createBookMatchConnector() {
-    const connector = document.createElement("span");
-    connector.classList.add("bookMatchConnector");
-    connector.setAttribute("aria-hidden", "true");
-
-    return connector;
-}
-
-function createBookMatchTags(matches) {
-    if (!Array.isArray(matches) || !matches.length) {
-        return null;
-    }
-
-    const wrapper = document.createElement("div");
-    wrapper.classList.add("bookMatchTags");
-    const orderedTypes = [
-        "temi_uguali",
-        "temi_affini",
-        "autore_uguale",
-        "generi_uguali",
-        "stili_narrativi_uguali"
-    ];
-
-    orderedTypes.forEach(type => {
-        const match = matches.find(item => item.type === type);
-
-        if (!match || !Array.isArray(match.elements) || !match.elements.length) {
-            return;
-        }
-
-        const row = document.createElement("div");
-        row.classList.add("bookMatchRow");
-
-        const label = document.createElement("span");
-        label.classList.add("bookMatchRowLabel");
-        label.textContent = getMatchLabel(type);
-
-        const items = document.createElement("div");
-        items.classList.add("bookMatchRowItems");
-
-        if (type === "temi_affini") {
-            appendBookMatchAffinityItems(items, match);
-        } else {
-            match.elements.forEach(element => {
-                items.appendChild(createBookMatchElement(match.type, element));
-            });
-        }
-
-        row.append(label, items);
-        wrapper.appendChild(row);
-    });
-
-    return wrapper.children.length ? wrapper : null;
-}
-
-function appendBookMatchAffinityItems(container, match) {
-    container.appendChild(createAffinityKeywordGroup(match.keywords_1, "bookMatchTagBlue"));
-    container.appendChild(createAffinityKeywordGroup(match.keywords_2, "bookMatchTagLavender"));
-
-    match.elements.forEach(element => {
-        container.appendChild(createBookMatchElement(match.type, element));
-    });
-}
-
-function createAffinityKeywordGroup(keywords, colorClass) {
-    const group = document.createElement("div");
-    group.classList.add("bookMatchKeywordGroup");
-
-    (Array.isArray(keywords) ? keywords : []).forEach(keyword => {
-        const tag = document.createElement("span");
-        tag.classList.add("bookMatchSourceKeyword", colorClass);
-        tag.textContent = keyword;
-        group.appendChild(tag);
-    });
-
-    return group;
-}
-
-function createBookMatchElement(type, element) {
-    if (type === "generi_uguali") {
-        const sticker = document.createElement("img");
-        sticker.classList.add("bookMatchSticker");
-        sticker.alt = element;
-        sticker.title = element;
-        sticker.src = `/stickers/${capitalize(element)}.png`;
-
-        return sticker;
-    }
-
-    const tag = document.createElement("span");
-    tag.classList.add("bookMatchTag");
-
-    if (type === "temi_affini") {
-        tag.classList.add("bookMatchTagAffinity");
-    } else if (type === "temi_uguali") {
-        tag.classList.add("bookMatchTagBlue");
-    } else {
-        tag.classList.add("bookMatchTagLavender");
-    }
-
-    tag.textContent = element;
-    tag.title = `${getMatchLabel(type)}: ${element}`;
-
-    return tag;
-}
-
 function getMatchLabel(type) {
     const labels = {
         temi_uguali: "Temi uguali",
@@ -632,6 +529,168 @@ function getMatchLabel(type) {
     };
 
     return labels[type] || "Match";
+}
+
+function createBookMatchScene(match, anchor = 50) {
+    const scene = document.createElement("div");
+    scene.classList.add("bookMatchScene");
+    scene.style.setProperty("--book-match-anchor", `${anchor}%`);
+
+    const bookA = getBookFromMatchValue(match.book_1);
+    const bookB = getBookFromMatchValue(match.book_2);
+    const affinityMatch = getBookMatchByType(match.matches, "temi_affini");
+    const sharedGenres = getBookMatchElements(match.matches, "generi_uguali");
+    const sharedStyles = getBookMatchElements(match.matches, "stili_narrativi_uguali");
+    const sharedThemes = getBookMatchElements(match.matches, "temi_uguali");
+    const sharedGenre = sharedGenres[0] || "";
+    const affinityKeyword = (affinityMatch.elements || [])[0] || sharedThemes[0] || "Match";
+
+    const keywordLayer = document.createElement("div");
+    keywordLayer.classList.add("bookMatchKeywordLayer");
+    keywordLayer.append(
+        createMatchKeywordCloud(affinityMatch.keywords_1, "left"),
+        createMatchGeneratedKeyword(affinityKeyword),
+        createMatchKeywordCloud(affinityMatch.keywords_2, "right")
+    );
+
+    const bottomLayer = document.createElement("div");
+    bottomLayer.classList.add("bookMatchBottomLayer");
+    bottomLayer.append(
+        createMatchBookCluster(bookA, match.book_1, match.user_1, sharedGenre, "left"),
+        createMatchSharedCluster(sharedGenre, sharedStyles),
+        createMatchBookCluster(bookB, match.book_2, match.user_2, sharedGenre, "right")
+    );
+
+    scene.append(keywordLayer, bottomLayer);
+
+    return scene;
+}
+
+function getBookMatchByType(matches, type) {
+    return (Array.isArray(matches) ? matches : []).find(item => item.type === type) || {
+        elements: [],
+        keywords_1: [],
+        keywords_2: []
+    };
+}
+
+function getBookMatchElements(matches, type) {
+    const foundMatch = getBookMatchByType(matches, type);
+
+    return Array.isArray(foundMatch.elements) ? foundMatch.elements.filter(Boolean) : [];
+}
+
+function createMatchKeywordCloud(keywords, side) {
+    const cloud = document.createElement("div");
+    cloud.classList.add("bookMatchKeywordCloud", `bookMatchKeywordCloud-${side}`);
+
+    (Array.isArray(keywords) ? keywords : []).slice(0, 3).forEach((keyword, index) => {
+        cloud.appendChild(createMatchPill(keyword, {
+            color: index % 2 === 0 ? "blue" : "lavender",
+            size: index === 0 ? "large" : "medium",
+            tilt: side === "left" ? [-7, 2, -3][index] : [3, -6, 2][index]
+        }));
+    });
+
+    return cloud;
+}
+
+function createMatchGeneratedKeyword(keyword) {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("bookMatchGeneratedKeyword");
+    wrapper.appendChild(createMatchPill(keyword, {
+        color: "white",
+        size: "hero",
+        tilt: -3
+    }));
+
+    return wrapper;
+}
+
+function createMatchBookCluster(book, fallbackTitle, userName, sharedGenre, side) {
+    const cluster = document.createElement("div");
+    cluster.classList.add("bookMatchBookCluster", `bookMatchBookCluster-${side}`);
+
+    const coverWrap = document.createElement("figure");
+    coverWrap.classList.add("bookMatchCoverWrap");
+
+    if (book && book.coverImage) {
+        const cover = document.createElement("img");
+        cover.classList.add("bookMatchCover");
+        cover.alt = book.title || "";
+        cover.src = `/books/${encodeURIComponent(book.coverImage)}`;
+        coverWrap.appendChild(cover);
+    }
+
+    normalizeBookValues(book ? book.genres : [])
+        .filter(genre => genre && genre !== sharedGenre)
+        .forEach((genre, index) => {
+            coverWrap.appendChild(createMatchSticker(genre, `bookMatchAttachedSticker-${index + 1}`));
+        });
+
+    const caption = document.createElement("figcaption");
+    caption.classList.add("bookMatchBookCaption");
+    caption.textContent = userName
+        ? `${userName} - ${(book && book.title) || getReadableBookMatchValue(fallbackTitle)}`
+        : ((book && book.title) || getReadableBookMatchValue(fallbackTitle));
+    coverWrap.appendChild(caption);
+    cluster.appendChild(coverWrap);
+
+    return cluster;
+}
+
+function createMatchSharedCluster(sharedGenre, sharedStyles) {
+    const cluster = document.createElement("div");
+    cluster.classList.add("bookMatchSharedCluster");
+
+    const stickerStack = document.createElement("div");
+    stickerStack.classList.add("bookMatchSharedStickerStack");
+
+    if (sharedGenre) {
+        stickerStack.append(
+            createMatchSticker(sharedGenre, "bookMatchSharedSticker", -12),
+            createMatchSticker(sharedGenre, "bookMatchSharedSticker", 12)
+        );
+    }
+
+    const styleStack = document.createElement("div");
+    styleStack.classList.add("bookMatchStyleStack");
+    sharedStyles.slice(0, 3).forEach((style, index) => {
+        styleStack.appendChild(createMatchPill(style, {
+            color: index % 2 === 0 ? "blue" : "lavender",
+            size: index === 0 ? "large" : "medium",
+            tilt: [-4, 3, -2][index]
+        }));
+    });
+
+    cluster.append(stickerStack, styleStack);
+
+    return cluster;
+}
+
+function createMatchSticker(genre, className, rotation) {
+    const sticker = document.createElement("img");
+    sticker.classList.add("bookMatchSticker", className);
+    sticker.alt = genre;
+    sticker.title = genre;
+    sticker.src = `/stickers/${capitalize(genre)}.png`;
+
+    if (typeof rotation === "number") {
+        sticker.style.setProperty("--match-sticker-rotation", `${rotation}deg`);
+    }
+
+    return sticker;
+}
+
+function createMatchPill(text, options = {}) {
+    const tag = document.createElement("span");
+    tag.classList.add("bookMatchPill", `bookMatchPill-${options.color || "blue"}`);
+    tag.classList.add(`bookMatchPill-${options.size || "medium"}`);
+    tag.textContent = text;
+    tag.title = text;
+    tag.style.setProperty("--match-pill-rotation", `${options.tilt || 0}deg`);
+
+    return tag;
 }
 
 function createBookElement(item) {

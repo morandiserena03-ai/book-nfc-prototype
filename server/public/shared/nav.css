@@ -17,12 +17,21 @@
     gap:8px;
 }
 
-.mobileNavCenterOnly{
+.mobileNavCenterOnly,
+.mobileNavHomeActions{
     left:50%;
     right:auto;
-    grid-template-columns:minmax(126px, 1fr);
     width:min(190px, calc(var(--app-width, 100vw) - 36px));
     transform:translateX(-50%);
+}
+
+.mobileNavCenterOnly{
+    grid-template-columns:minmax(126px, 1fr);
+}
+
+.mobileNavHomeActions{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    width:min(292px, calc(var(--app-width, 100vw) - 36px));
 }
 
 .mobileNav a{

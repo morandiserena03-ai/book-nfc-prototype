@@ -2,11 +2,18 @@
     box-sizing:border-box;
 }
 
+@font-face{
+    font-family:"PP Monument Wide";
+    src:url("/fonts/PPMonumentWide-Regular.otf") format("opentype");
+    font-weight:400;
+    font-style:normal;
+    font-display:swap;
+}
+
 body{
-    min-width:1100px;
     min-height:100vh;
     margin:0;
-    padding:150px 50px 70px;
+    padding:39px 18px 92px;
     color:white;
     font-family:"PP Monument Wide", sans-serif;
     background:#05053E;
@@ -18,30 +25,33 @@ body{
 }
 
 .title{
-    padding-left: 20px;
+    margin:0;
+    padding-left:9px;
     z-index:20;
     color:white;
     font-family:"PP Monument Wide", sans-serif;
-    font-size:3.4rem;
+    font-size:clamp(2rem, 11vw, 3.4rem);
     line-height:0.9;
-    letter-spacing:-0.04em;
+    letter-spacing:0;
 }
 
 .booksGrid{
     display:grid;
-    grid-template-columns:repeat(5, 176px);
-    justify-content:space-between;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    justify-content:center;
     align-items:start;
-    column-gap:64px;
-    row-gap:108px;
+    column-gap:22px;
+    row-gap:46px;
     width:100%;
-    margin-top:46px;
-    padding:0 14px;
+    max-width:430px;
+    margin:36px auto 0;
+    padding:0 10px;
 }
 
 .bookCard{
     display:block;
-    width:176px;
+    width:100%;
+    min-width:0;
     color:white;
     text-decoration:none;
     transform:rotate(var(--rotation));
@@ -54,18 +64,20 @@ body{
 
 .bookCover{
     display:block;
-    width:176px;
-    height:264px;
+    width:100%;
+    aspect-ratio:2 / 3;
+    height:auto;
     object-fit:cover;
 }
 
 .bookTitle{
     display:block;
-    margin-top:14px;
-    font-size:1.02rem;
+    margin-top:10px;
+    font-size:clamp(0.72rem, 3.4vw, 0.9rem);
     line-height:1.02;
     font-weight:400;
     text-wrap:balance;
+    overflow-wrap:anywhere;
 }
 
 .bookCard:nth-child(5n + 1){
@@ -95,4 +107,51 @@ body{
 
 .bookCard:nth-child(10n + 8){
     --rotation:6deg;
+}
+
+@media (min-width:700px){
+    body{
+        padding:150px 50px 70px;
+    }
+
+    .booksPage{
+        width:100%;
+    }
+
+    .title{
+        padding-left:20px;
+        font-size:3.4rem;
+    }
+
+    .booksGrid{
+        grid-template-columns:repeat(5, 176px);
+        justify-content:space-between;
+        column-gap:64px;
+        row-gap:108px;
+        max-width:none;
+        margin-top:46px;
+        padding:0 14px;
+    }
+
+    .bookCard{
+        width:176px;
+    }
+
+    .bookCover{
+        width:176px;
+        height:264px;
+        aspect-ratio:auto;
+    }
+
+    .bookTitle{
+        margin-top:14px;
+        font-size:1.02rem;
+    }
+}
+
+@media (max-width:374px){
+    .booksGrid{
+        column-gap:16px;
+        padding:0 4px;
+    }
 }

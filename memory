@@ -2,36 +2,37 @@
 
 ## Scopo
 
-Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma libri da pagine NFC, riceve sticker legati ai generi e viene mostrato in tempo reale su dashboard e pagina Centro.
+Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma libri da pagine NFC, riceve sticker legati ai generi, compare in tempo reale su Dashboard e Centro, e puo avvicinarsi ad altri utenti per generare un match semantico tra libri.
 
 ## Stack e avvio
 
 - Backend: Express + Socket.IO, porta `process.env.PORT` o `3000`.
-- Static files: `server/public`.
-- Stato utenti: oggetto `users` in memoria, perso al riavvio.
+- Static files: `server/public`; cartella `Icons/` servita da `/Icons`.
+- Stato utenti e cronologie match: in memoria server, persi al riavvio.
 - Persistenza browser: `localStorage` per `deviceId` e layout sticker.
+- Variabili ambiente: `.env` caricato manualmente da `server/server.js`; `OPENROUTER_API_KEY` abilita il matching libri.
 - Avvio: `npm start`.
 - URL utili: `/mobile`, `/dashboard`, `/centro`, `/centro-mobile`, `/libri`, `/nfc?book=book1`.
 
 ## Struttura principale
 
-- `server/server.js`: server, API, route, stato utenti e Socket.IO.
-- `server/data/books.js`: fonte unica del catalogo libri.
-- `server/data/genres.js`: dati generi, non usato ovunque.
-- `server/public/mobile/`: registrazione, collezione e sticker utente.
+- `server/server.js`: server, API, route, stato utenti, Socket.IO e matching OpenRouter.
+- `server/data/books.js`: fonte unica del catalogo libri e dei metadati usati da NFC, catalogo, aura Centro e match.
+- `server/data/genres.js`: dati generi legacy/non centrali.
+- `server/public/mobile/`: registrazione, collezione libri/sticker e cancellazione account.
 - `server/public/nfc/`: pagina NFC unica parametrizzata.
 - `server/public/dashboard/`: dashboard realtime.
-- `server/public/centro/`: visualizzazione Centro desktop.
+- `server/public/centro/`: visualizzazione Centro desktop con aura e scena match.
 - `server/public/centro-mobile/`: controlli mobile per avvicinarsi ad altri utenti.
-- `server/public/libri/`: catalogo libri.
-- `server/public/shared/nav.css`: navbar condivisa.
+- `server/public/libri/`: catalogo libri responsive.
+- `server/public/shared/nav.css`: navbar condivisa desktop/mobile.
 - `server/public/books/`: copertine.
 - `server/public/stickers/`: sticker per genere.
-- `Icons/`: logo, GIF caricamento, icona cestino.
+- `Icons/`: logo, GIF caricamento, icona cestino, sagome Centro.
 
 ## Route e API
 
-- `GET /` -> home statica.
+- `GET /` -> home statica da `server/public`.
 - `GET /mobile` -> pagina mobile.
 - `GET /dashboard` -> dashboard realtime.
 - `GET /centro` -> pagina Centro.
@@ -44,19 +45,20 @@ Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma
 - `GET /users` -> utenti normalizzati con `centerOrder` e `savedBooks`.
 - `POST /register` -> crea/aggiorna utente.
 - `POST /nfc/confirm` -> aggiunge libro e generi all'utente.
-- `POST /center/approach` -> riordina gli utenti del Centro avvicinando un utente a un altro.
-- `POST /delete` -> elimina utente, pulisce riferimenti `approachTargetId` e notifica i client.
+- `POST /center/approach` -> riordina gli utenti del Centro e avvia il match libri tra utente e target.
+- `POST /delete` -> elimina utente, pulisce `approachTargetId` e aggiorna i client.
 
 ## Modello dati
 
-- `books[bookId]` contiene: `title`, `author`, `coverImage`, `genres`, `narrativeStyles`, `topic`, `plot`, `protagonists`, `characters`, `temporalSetting`, `geographicSetting`, `moral`.
-- `users[deviceId]` contiene:
+- `books[bookId]`: `title`, `author`, `coverImage`, `genres`, `narrativeStyles`, `topic`, `plot`, `protagonists`, `characters`, `temporalSetting`, `geographicSetting`, `moral`.
+- `users[deviceId]`:
   - `nickname`
   - `collection`: generi raccolti, usati per sticker legacy/mobile.
   - `savedBooks`: id dei libri confermati via NFC.
   - `approachTargetId`: utente scelto da `/centro-mobile`.
   - `centerOrder`: ordine orizzontale nella pagina Centro.
-- `POST /nfc/confirm` aggiunge `bookId` a `savedBooks` una sola volta, ma aggiunge i generi del libro a `collection`.
+- `recentMatches`: cooldown in memoria per evitare match ripetuti troppo ravvicinati.
+- `matchedBookPairHistory`: coppie di titoli gia usate tra due utenti, per preferire combinazioni nuove.
 
 ## Funzionalita attuali
 
@@ -66,22 +68,39 @@ Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma
 - Pagina NFC mostra titolo, copertina e conferma, senza generi.
 - Dashboard aggiornata via Socket.IO.
 - Cancellazione account da mobile con `/Icons/Cestino.png`.
-- Pagina `/libri` carica `GET /api/books` e linka le copertine a `/nfc?book=<bookId>`.
-- Navbar condivisa con logo `/Icons/BookPride.png`; su mobile la pagina `/mobile` mostra solo il link Centro nella nav inferiore.
-- Pagina Centro desktop mostra gli utenti ordinati e ridimensionati in base allo spazio disponibile.
-- La visualizzazione Centro alterna forme sinistra/destra in base alla direzione di avvicinamento.
-- Aura Centro: mostra copertine, sticker e keyword tratte dai metadati dei libri salvati; evita collisioni con forme, nickname e altri elementi per quanto possibile.
+- Pagina `/libri` carica `GET /api/books`, mostra copertine responsive e linka ogni libro a `/nfc?book=<bookId>`.
+- Navbar condivisa con logo `/Icons/BookPride.png`; su mobile le pagine principali espongono azioni inferiori per Centro e Libri.
+- Pagina Centro desktop mostra utenti ordinati, scalati in base allo spazio e con sagoma sinistra/destra in base alla direzione di avvicinamento.
+- Aura Centro: mostra copertine, sticker e keyword dai metadati dei libri salvati; usa fallback su `collection` per utenti legacy senza `savedBooks`.
 - `/centro-mobile` mostra gli altri utenti e permette di scegliere a chi avvicinarsi; la scelta aggiorna il Centro in realtime.
+- Quando un utente si avvicina a un altro, il server genera un match tra un libro salvato da ciascun utente e il Centro mostra una scena temporanea con copertine, sticker condivisi, stili e keyword.
+
+## Matching libri
+
+- Trigger: `POST /center/approach`, dopo il riordino utenti.
+- Provider: OpenRouter `https://openrouter.ai/api/v1/chat/completions`.
+- Modello configurato: `anthropic/claude-haiku-4.5`.
+- Richiede `OPENROUTER_API_KEY`; in assenza della chiave viene emesso `bookMatchError`.
+- Eventi Socket.IO:
+  - `update`: dati utenti cambiati.
+  - `bookMatchStarted`: match avviato; il Centro ora non mostra loader visibile.
+  - `bookMatch`: risultato valido da mostrare nel Centro.
+  - `bookMatchError`: errore match, messaggio temporaneo.
+- Il prompt sceglie la miglior coppia di libri usando priorita: temi uguali, temi affini, autore uguale, generi uguali, stili narrativi uguali.
+- `sanitizeBookMatch()` valida lato server i match letterali contro `books.js`, filtra keyword non presenti nei campi ammessi e ordina le categorie.
+- `avoidBookPairs` e `matchedBookPairHistory` evitano di riproporre la stessa coppia finche esistono alternative; la cronologia si resetta quando tutte le coppie possibili sono state usate.
+- `MATCH_COOLDOWN_MS` e `recentMatches` evitano richieste ripetute entro 8 secondi per la stessa coppia direzionale di utenti.
 
 ## Note implementative
 
-- Socket.IO emette `update` dopo registrazione, conferma NFC, avvicinamento Centro e cancellazione.
+- `addBookToUser()` aggiunge `bookId` a `savedBooks` una sola volta, ma aggiunge sempre i generi del libro a `collection`.
 - `normalizeCenterOrder()` compatta l'ordine dopo cancellazioni o dati incompleti.
 - `GET /users` garantisce `savedBooks: []` anche per utenti legacy.
 - Il Centro carica prima `/api/books`, poi `/users`, e ricalcola layout al resize.
 - Gli sticker sono caricati da `/stickers/<GenereCapitalizzato>.png`.
-- Le copertine aura sono caricate da `/books/<coverImage>`.
-- La collisione dell'aura usa bounding box e, quando possibile, maschera alpha dell'immagine forma.
+- Le copertine sono caricate da `/books/<coverImage>`.
+- La collisione dell'aura usa bounding box e, quando possibile, maschera alpha della sagoma.
+- La scena match si ancora al punto medio dei due utenti coinvolti quando ci sono piu di due utenti; con uno o due utenti resta centrata.
 
 ## Limiti
 
