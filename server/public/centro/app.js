@@ -541,9 +541,8 @@ function createBookMatchScene(match, anchor = 50) {
     const affinityMatch = getBookMatchByType(match.matches, "temi_affini");
     const sharedGenres = getBookMatchElements(match.matches, "generi_uguali");
     const sharedStyles = getBookMatchElements(match.matches, "stili_narrativi_uguali");
-    const sharedThemes = getBookMatchElements(match.matches, "temi_uguali");
     const sharedGenre = sharedGenres[0] || "";
-    const affinityKeyword = (affinityMatch.elements || [])[0] || sharedThemes[0] || "Match";
+    const affinityKeyword = (affinityMatch.elements || [])[0] || "";
 
     const keywordLayer = document.createElement("div");
     keywordLayer.classList.add("bookMatchKeywordLayer");
@@ -598,6 +597,12 @@ function createMatchKeywordCloud(keywords, side) {
 function createMatchGeneratedKeyword(keyword) {
     const wrapper = document.createElement("div");
     wrapper.classList.add("bookMatchGeneratedKeyword");
+
+    if (!keyword) {
+        wrapper.hidden = true;
+        return wrapper;
+    }
+
     wrapper.appendChild(createMatchPill(keyword, {
         color: "white",
         size: "hero",
@@ -647,9 +652,12 @@ function createMatchSharedCluster(sharedGenre, sharedStyles) {
     stickerStack.classList.add("bookMatchSharedStickerStack");
 
     if (sharedGenre) {
+        const leftSticker = createMatchSticker(sharedGenre, "bookMatchSharedSticker bookMatchSharedSticker-left", -12);
+        const rightSticker = createMatchSticker(sharedGenre, "bookMatchSharedSticker bookMatchSharedSticker-right", 12);
+
         stickerStack.append(
-            createMatchSticker(sharedGenre, "bookMatchSharedSticker", -12),
-            createMatchSticker(sharedGenre, "bookMatchSharedSticker", 12)
+            leftSticker,
+            rightSticker
         );
     }
 
@@ -670,7 +678,10 @@ function createMatchSharedCluster(sharedGenre, sharedStyles) {
 
 function createMatchSticker(genre, className, rotation) {
     const sticker = document.createElement("img");
-    sticker.classList.add("bookMatchSticker", className);
+    sticker.classList.add("bookMatchSticker");
+    className.split(/\s+/).filter(Boolean).forEach(name => {
+        sticker.classList.add(name);
+    });
     sticker.alt = genre;
     sticker.title = genre;
     sticker.src = `/stickers/${capitalize(genre)}.png`;

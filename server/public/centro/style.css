@@ -71,7 +71,7 @@ body{
     top:clamp(8px, 2vh, 24px);
     left:var(--book-match-anchor, 50%);
     width:calc(clamp(430px, 36vw, 560px) * var(--match-user-scale));
-    height:calc(clamp(240px, 29vh, 330px) * var(--match-user-scale));
+    height:calc(clamp(285px, 33vh, 380px) * var(--match-user-scale));
     transform:translateX(-50%);
     animation:bookMatchEnter 0.42s ease both;
 }
@@ -89,20 +89,51 @@ body{
     position:absolute;
 }
 
+.bookMatchBookCluster,
+.bookMatchSharedSticker,
+.bookMatchStyleStack,
+.bookMatchKeywordCloud,
+.bookMatchGeneratedKeyword{
+    opacity:0;
+    animation:bookMatchRevealStep 0.5s ease both;
+}
+
+.bookMatchBookCluster-right,
+.bookMatchSharedSticker-right{
+    animation-delay:0.08s;
+}
+
+.bookMatchBookCluster-left,
+.bookMatchSharedSticker-left{
+    animation-delay:0.82s;
+}
+
+.bookMatchStyleStack{
+    animation-delay:1.46s;
+}
+
 .bookMatchKeywordCloud{
-    top:2%;
+    animation-delay:2.16s;
+}
+
+.bookMatchGeneratedKeyword{
+    animation-delay:2.86s;
+}
+
+.bookMatchKeywordCloud{
+    top:13%;
     display:grid;
-    gap:calc(clamp(12px, 1.7vw, 24px) * var(--match-user-scale));
-    width:34%;
+    gap:calc(clamp(6px, 0.8vw, 10px) * var(--match-user-scale));
+    width:27%;
 }
 
 .bookMatchKeywordCloud-left{
-    left:0;
+    left:2%;
     justify-items:start;
 }
 
 .bookMatchKeywordCloud-right{
-    right:0;
+    right:2%;
     justify-items:end;
 }
 
@@ -115,9 +146,13 @@ body{
 }
 
 .bookMatchGeneratedKeyword{
-    top:16%;
+    top:25%;
     left:50%;
     transform:translate(-50%, -50%);
+}
+
+.bookMatchKeywordCloud .bookMatchPill{
+    max-width:100%;
 }
 
 .bookMatchBottomLayer{
@@ -326,6 +361,16 @@ body{
     }
 }
 
+@keyframes bookMatchRevealStep{
+    from{
+        opacity:0;
+    }
+
+    to{
+        opacity:1;
+    }
+}
+
 .centerUser{
     position:absolute;
     bottom:20px;
@@ -357,6 +402,16 @@ body.centerTwoUsers .centerUserAura{
 @media (prefers-reduced-motion:reduce){
     .centerUser{
         transition:none;
+    }
+
+    .bookMatchScene,
+    .bookMatchBookCluster,
+    .bookMatchSharedSticker,
+    .bookMatchStyleStack,
+    .bookMatchKeywordCloud,
+    .bookMatchGeneratedKeyword{
+        opacity:1;
+        animation:none;
     }
 }
 
@@ -490,25 +545,25 @@ body.centerTwoUsers .centerUserLeft .centerUserNickname{
     .bookMatchScene{
         top:6px;
         width:calc(88vw * var(--match-user-scale));
-        height:calc(clamp(210px, 31vh, 270px) * var(--match-user-scale));
+        height:calc(clamp(250px, 36vh, 315px) * var(--match-user-scale));
     }
 
     .bookMatchKeywordCloud{
-        top:2%;
-        width:36%;
-        gap:12px;
+        top:14%;
+        width:30%;
+        gap:6px;
     }
 
     .bookMatchKeywordCloud-left{
-        left:0;
+        left:1%;
     }
 
     .bookMatchKeywordCloud-right{
-        right:0;
+        right:1%;
     }
 
     .bookMatchGeneratedKeyword{
-        top:16%;
+        top:26%;
     }
 
     .bookMatchBookCluster{
@@ -608,6 +663,6 @@ body.centerTwoUsers .centerUserLeft .centerUserNickname{
     }
 
     .bookMatchScene{
-        height:calc(clamp(220px, 28vh, 300px) * var(--match-user-scale));
+        height:calc(clamp(265px, 32vh, 340px) * var(--match-user-scale));
     }
 }
