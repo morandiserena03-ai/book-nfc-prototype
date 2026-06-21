@@ -18,7 +18,6 @@ Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma
 
 - `server/server.js`: server, API, route, stato utenti, Socket.IO e matching OpenRouter.
 - `server/data/books.js`: fonte unica del catalogo libri e dei metadati usati da NFC, catalogo, aura Centro e match.
-- `server/data/genres.js`: dati generi legacy/non centrali.
 - `server/public/mobile/`: registrazione, collezione libri/sticker e cancellazione account.
 - `server/public/nfc/`: pagina NFC unica parametrizzata.
 - `server/public/dashboard/`: dashboard realtime.
@@ -26,6 +25,7 @@ Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma
 - `server/public/centro-mobile/`: controlli mobile per avvicinarsi ad altri utenti.
 - `server/public/libri/`: catalogo libri responsive.
 - `server/public/shared/nav.css`: navbar condivisa desktop/mobile.
+- `server/public/animations/`: asset animazioni per aura Centro, inclusa la Lottie delle keyword.
 - `server/public/books/`: copertine.
 - `server/public/stickers/`: sticker per genere.
 - `Icons/`: logo, GIF caricamento, icona cestino, sagome Centro.
@@ -72,8 +72,12 @@ Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma
 - Navbar condivisa con logo `/Icons/BookPride.png`; su mobile le pagine principali espongono azioni inferiori per Centro e Libri.
 - Pagina Centro desktop mostra utenti ordinati, scalati in base allo spazio e con sagoma sinistra/destra in base alla direzione di avvicinamento.
 - Aura Centro: mostra copertine, sticker e keyword dai metadati dei libri salvati; usa fallback su `collection` per utenti legacy senza `savedBooks`.
+- Aura Centro aggiornata con 3 slot libro, 6 slot keyword e sticker liberi in movimento leggero; ogni keyword resta associata a un libro visibile e viene rimossa quando la relativa copertina esce.
+- Le keyword dell'aura usano Lottie via CDN `lottie-web` e asset `/animations/aura-keyword-text.json`; il testo e il colore della bolla vengono modificati runtime, con fallback testuale se Lottie non carica.
 - `/centro-mobile` mostra gli altri utenti e permette di scegliere a chi avvicinarsi; la scelta aggiorna il Centro in realtime.
+- I pulsanti di `/centro-mobile` hanno una rotazione casuale in stile lightbox invece di rotazioni fisse per posizione.
 - Quando un utente si avvicina a un altro, il server genera un match tra un libro salvato da ciascun utente e il Centro mostra una scena temporanea con copertine, sticker condivisi, stili e keyword.
+- La scena match Centro ha layer keyword separato, pill con rotazione casuale leggera e dimensioni riviste per occupare piu spazio senza sovrapporsi alle copertine.
 
 ## Matching libri
 
@@ -99,7 +103,9 @@ Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma
 - Il Centro carica prima `/api/books`, poi `/users`, e ricalcola layout al resize.
 - Gli sticker sono caricati da `/stickers/<GenereCapitalizzato>.png`.
 - Le copertine sono caricate da `/books/<coverImage>`.
+- Le keyword animate sono caricate da `/animations/aura-keyword-text.json`; il template contiene testo base `Drammatico`, sostituito lato client.
 - La collisione dell'aura usa bounding box e, quando possibile, maschera alpha della sagoma.
+- La collisione dell'aura ora protegge gli elementi appena creati con tempi minimi di visibilita, lega massimo 2 keyword per libro e consente una piccola sovrapposizione controllata keyword-copertina.
 - La scena match si ancora al punto medio dei due utenti coinvolti quando ci sono piu di due utenti; con uno o due utenti resta centrata.
 
 ## Limiti
@@ -107,5 +113,5 @@ Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma
 - Nessun database o persistenza server-side.
 - Nessun test automatico.
 - `collection` puo contenere generi duplicati.
-- `genres.js` non e la fonte unica per tutte le risoluzioni sticker.
 - Dopo modifiche a `server/server.js` serve riavviare il server.
+- Le keyword animate dipendono dalla CDN di `lottie-web`; senza rete/CDN resta il fallback testuale.

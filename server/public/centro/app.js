@@ -1,22 +1,45 @@
 const socket = io();
+const KEYWORD_ANIMATION_VISIBLE_MS = 7600;
+const BOOK_VISIBLE_MS = KEYWORD_ANIMATION_VISIBLE_MS * 2;
 const AURA_REFRESH_INTERVALS = {
-    "book-0": 7700,
-    "book-1": 8600,
-    "keyword-0": 5000,
-    "keyword-1": 5000,
-    "keyword-2": 5000
+    "book-0": BOOK_VISIBLE_MS,
+    "book-1": BOOK_VISIBLE_MS,
+    "book-2": BOOK_VISIBLE_MS,
+    "keyword-0": KEYWORD_ANIMATION_VISIBLE_MS,
+    "keyword-1": KEYWORD_ANIMATION_VISIBLE_MS,
+    "keyword-2": KEYWORD_ANIMATION_VISIBLE_MS,
+    "keyword-3": KEYWORD_ANIMATION_VISIBLE_MS,
+    "keyword-4": KEYWORD_ANIMATION_VISIBLE_MS,
+    "keyword-5": KEYWORD_ANIMATION_VISIBLE_MS,
+    looseStickers: 3000
 };
 const AURA_REFRESH_OFFSETS = {
-    "book-0": 7700,
-    "book-1": 8600,
-    "keyword-0": 5000,
-    "keyword-1": 5600,
-    "keyword-2": 6200
+    "book-0": BOOK_VISIBLE_MS,
+    "book-1": BOOK_VISIBLE_MS,
+    "book-2": BOOK_VISIBLE_MS,
+    "keyword-0": 2200,
+    "keyword-1": 2800,
+    "keyword-2": 2400,
+    "keyword-3": 3000,
+    "keyword-4": 2600,
+    "keyword-5": 3200,
+    looseStickers: 3000
 };
-const BOOK_SLOT_TYPES = ["book-0", "book-1"];
-const KEYWORD_SLOT_TYPES = ["keyword-0", "keyword-1", "keyword-2"];
+const BOOK_SLOT_TYPES = ["book-0", "book-1", "book-2"];
+const KEYWORD_SLOT_TYPES = ["keyword-0", "keyword-1", "keyword-2", "keyword-3", "keyword-4", "keyword-5"];
+const MAX_VISIBLE_KEYWORDS_PER_BOOK = 2;
+const MIN_AURA_ELEMENT_VISIBLE_MS = 3000;
+const MIN_KEYWORD_VISIBLE_MS = KEYWORD_ANIMATION_VISIBLE_MS - 100;
+const MIN_BOOK_VISIBLE_MS = BOOK_VISIBLE_MS;
+const KEYWORD_BURST_CHANCE = 0.35;
+const KEYWORD_BURST_DELAY = 140;
+const BOOK_KEYWORD_RETRY_DELAY = KEYWORD_ANIMATION_VISIBLE_MS;
+const KEYWORD_LOTTIE_PATH = "/animations/aura-keyword-text.json";
+const AURA_KEYWORD_COLORS = ["#0000FF", "#9797FD"];
 const SHAPE_ALPHA_THRESHOLD = 8;
 const SHAPE_PROTECTION_MARGIN = 3;
+const LIGHT_BOX_ROTATION_MIN_DEG = 4;
+const LIGHT_BOX_ROTATION_MAX_DEG = 10;
 const TWO_USER_POSITION_MIN = 24;
 const TWO_USER_POSITION_MAX = 76;
 const AURA_GAP = 18;
@@ -42,6 +65,7 @@ let latestUsers = {};
 let auraTimersStarted = false;
 let bookMatchHideTimer = null;
 let currentBookMatchEvent = null;
+let keywordLottieDataPromise = null;
 const shapeMasks = new Map();
 
 socket.on("update", () => {
@@ -261,13 +285,25 @@ function startAuraTimer() {
     KEYWORD_SLOT_TYPES.forEach(type => {
         scheduleAuraTick(type, AURA_REFRESH_OFFSETS[type]);
     });
+    scheduleAuraTick("looseStickers", AURA_REFRESH_OFFSETS.looseStickers);
 }
 
 function scheduleAuraTick(type, delay) {
     setTimeout(() => {
         refreshAuraType(type);
+        maybeRefreshKeywordBurst(type);
         scheduleAuraTick(type, AURA_REFRESH_INTERVALS[type]);
     }, delay);
+}
+
+function maybeRefreshKeywordBurst(type) {
+    if (type !== "keyword-0" || Math.random() > KEYWORD_BURST_CHANCE) {
+        return;
+    }
+
+    setTimeout(() => {
+        refreshAuraType("keyword-1");
+    }, KEYWORD_BURST_DELAY);
 }
 
 function refreshAuraType(type) {
@@ -281,43 +317,111 @@ function refreshAuraType(type) {
 }
 
 function ensureAuraMinimums(figure, user) {
-    renderAuraType(figure, user, "book-0");
-    renderAuraType(figure, user, "book-1");
+    BOOK_SLOT_TYPES.forEach(type => {
+        renderAuraType(figure, user, type);
+    });
     KEYWORD_SLOT_TYPES.forEach(type => {
         renderAuraType(figure, user, type);
     });
     renderAuraType(figure, user, "looseStickers");
 }
 
-function renderAuraType(figure, user, type) {
+function renderAuraType(figure, user, type, options = {}) {
     const aura = figure.querySelector(".centerUserAura");
 
     if (!aura) {
         return;
     }
 
+    if (isBookSlot(type) && hasFreshBookInSlot(aura, type)) {
+        const bookId = getCurrentSlotBookId(aura, type);
+
+        if (bookId) {
+            scheduleKeywordsForBook(figure, user, bookId);
+        }
+
+        return;
+    }
+
+    if (isKeywordSlot(type)) {
+        pruneKeywordsWithoutVisibleBook(aura);
+
+        if (hasFreshKeywordInSlot(aura, type)) {
+            return;
+        }
+    }
+
+    if (type === "looseStickers" && hasFreshAuraElementInType(aura, type)) {
+        return;
+    }
+
     const items = createAuraItems(user);
-    const visibleItems = chooseVisibleAuraItems(items, type, aura);
+    const visibleItems = chooseVisibleAuraItems(items, type, aura, options);
 
     aura.querySelectorAll(`[data-aura-type="${type}"]`).forEach(element => {
         element.remove();
     });
 
     if (!visibleItems.length) {
+        if (isBookSlot(type)) {
+            pruneKeywordsWithoutVisibleBook(aura);
+        }
+
         return;
     }
+
+    const placedBookIds = [];
 
     visibleItems
         .forEach((item, index) => {
             const element = createAuraElement(item);
 
             element.dataset.auraType = type;
-            placeAuraElement(aura, element, type, index);
+            const didPlace = placeAuraElement(aura, element, type, index);
+
+            if (didPlace && isBookSlot(type) && item.bookId) {
+                placedBookIds.push(item.bookId);
+            }
         });
 
     if (isBookSlot(type)) {
+        pruneKeywordsWithoutVisibleBook(aura);
+        placedBookIds.forEach(bookId => {
+            scheduleKeywordsForBook(figure, user, bookId);
+        });
         renderAuraType(figure, user, "looseStickers");
     }
+}
+
+function scheduleKeywordsForBook(figure, user, bookId) {
+    if (!bookId) {
+        return;
+    }
+
+    const aura = figure.querySelector(".centerUserAura");
+    const slots = aura ? getKeywordSlotsForBook(aura, bookId) : KEYWORD_SLOT_TYPES.slice(0, MAX_VISIBLE_KEYWORDS_PER_BOOK);
+
+    renderAuraType(figure, user, slots[0], { preferredBookId: bookId });
+
+    setTimeout(() => {
+        const currentAura = figure.querySelector(".centerUserAura");
+
+        if (!currentAura || !getVisibleBookIds(currentAura).has(bookId)) {
+            return;
+        }
+
+        renderAuraType(figure, user, slots[1] || slots[0], { preferredBookId: bookId });
+    }, BOOK_KEYWORD_RETRY_DELAY);
+}
+
+function pruneKeywordsWithoutVisibleBook(aura) {
+    const visibleBookIds = getVisibleBookIds(aura);
+
+    aura.querySelectorAll(".auraKeyword").forEach(keyword => {
+        if (!visibleBookIds.has(keyword.dataset.bookId)) {
+            keyword.remove();
+        }
+    });
 }
 
 function createAuraItems(user) {
@@ -586,8 +690,7 @@ function createMatchKeywordCloud(keywords, side) {
     (Array.isArray(keywords) ? keywords : []).slice(0, 3).forEach((keyword, index) => {
         cloud.appendChild(createMatchPill(keyword, {
             color: index % 2 === 0 ? "blue" : "lavender",
-            size: index === 0 ? "large" : "medium",
-            tilt: side === "left" ? [-7, 2, -3][index] : [3, -6, 2][index]
+            size: index === 0 ? "large" : "medium"
         }));
     });
 
@@ -605,8 +708,7 @@ function createMatchGeneratedKeyword(keyword) {
 
     wrapper.appendChild(createMatchPill(keyword, {
         color: "white",
-        size: "hero",
-        tilt: -3
+        size: "hero"
     }));
 
     return wrapper;
@@ -666,8 +768,7 @@ function createMatchSharedCluster(sharedGenre, sharedStyles) {
     sharedStyles.slice(0, 3).forEach((style, index) => {
         styleStack.appendChild(createMatchPill(style, {
             color: index % 2 === 0 ? "blue" : "lavender",
-            size: index === 0 ? "large" : "medium",
-            tilt: [-4, 3, -2][index]
+            size: index === 0 ? "large" : "medium"
         }));
     });
 
@@ -699,7 +800,7 @@ function createMatchPill(text, options = {}) {
     tag.classList.add(`bookMatchPill-${options.size || "medium"}`);
     tag.textContent = text;
     tag.title = text;
-    tag.style.setProperty("--match-pill-rotation", `${options.tilt || 0}deg`);
+    tag.style.setProperty("--match-pill-rotation", `${randomLightBoxRotation()}deg`);
 
     return tag;
 }
@@ -708,6 +809,7 @@ function createBookElement(item) {
     const wrapper = document.createElement("div");
     wrapper.classList.add("auraBook");
     wrapper.dataset.bookId = item.bookId;
+    wrapper.dataset.createdAt = String(Date.now());
 
     const cover = document.createElement("img");
     cover.alt = "";
@@ -731,40 +833,270 @@ function createBookElement(item) {
 }
 
 function createLooseStickerElement(item) {
-    const sticker = document.createElement("img");
-    sticker.alt = "";
+    const sticker = document.createElement("div");
     sticker.classList.add("auraLooseSticker");
     sticker.dataset.bookId = item.bookId || "";
     sticker.dataset.stickerKey = item.stickerKey;
     sticker.dataset.stableIndex = String(item.stableIndex);
-    sticker.src = `/stickers/${capitalize(item.genre)}.png`;
+    sticker.dataset.createdAt = String(Date.now());
+
+    const image = document.createElement("img");
+    image.alt = "";
+    image.classList.add("auraLooseStickerImage");
+    image.src = `/stickers/${capitalize(item.genre)}.png`;
+
+    sticker.appendChild(image);
 
     return sticker;
 }
 
 function createKeywordElement(item) {
     const tag = document.createElement("span");
+    const animation = document.createElement("span");
+    const fallback = document.createElement("span");
+    const metrics = getKeywordTextMetrics(item.text);
+    const color = AURA_KEYWORD_COLORS[randomInt(0, AURA_KEYWORD_COLORS.length - 1)];
+
     tag.classList.add("auraKeyword");
-    tag.classList.add(Math.random() > 0.5 ? "auraKeywordBlue" : "auraKeywordLavender");
-    tag.textContent = item.text;
+    tag.classList.add("auraKeywordAnimated");
+    tag.dataset.bookId = item.bookId;
+    tag.dataset.createdAt = String(Date.now());
     tag.title = `${item.label}: ${item.text}`;
+    tag.style.setProperty("--aura-keyword-color", color);
+    tag.style.setProperty("--aura-keyword-width-ratio", String(metrics.visualRatio));
+    tag.style.setProperty("--aura-keyword-aspect", `${Math.ceil(576 + metrics.extraWidth)} / 324`);
+    animation.classList.add("auraKeywordAnimation");
+    animation.setAttribute("aria-hidden", "true");
+    fallback.classList.add("auraKeywordFallback");
+    fallback.textContent = item.text;
+    tag.append(animation, fallback);
+    renderKeywordLottie(animation, item.text, color);
 
     return tag;
 }
 
-function createAuraElement(item) {
-    if (item.type === "book") {
-        return createBookElement(item);
+async function renderKeywordLottie(container, text, color) {
+    const keyword = container.closest(".auraKeyword");
+
+    setTimeout(() => {
+        if (container.isConnected && !keyword?.classList.contains("auraKeywordLottieReady")) {
+            keyword?.classList.add("auraKeywordFallbackVisible");
+        }
+    }, 1200);
+
+    if (!window.lottie) {
+        keyword?.classList.add("auraKeywordFallbackVisible");
+        return;
     }
 
-    if (item.type === "looseSticker") {
-        return createLooseStickerElement(item);
-    }
+    try {
+        const animationData = await createKeywordLottieData(text, color);
 
-    return createKeywordElement(item);
+        if (!container.isConnected) {
+            return;
+        }
+
+        const animation = window.lottie.loadAnimation({
+            container,
+            renderer: "svg",
+            loop: false,
+            autoplay: true,
+            animationData,
+            rendererSettings: {
+                preserveAspectRatio: "xMidYMid meet",
+                progressiveLoad: false
+            }
+        });
+
+        animation.addEventListener("DOMLoaded", () => {
+            const svg = container.querySelector("svg");
+
+            if (svg) {
+                keyword.dataset.createdAt = String(Date.now());
+                keyword?.classList.add("auraKeywordLottieReady");
+                keyword?.classList.remove("auraKeywordFallbackVisible");
+            } else {
+                keyword?.classList.add("auraKeywordFallbackVisible");
+            }
+        });
+    } catch (error) {
+        keyword?.classList.add("auraKeywordFallbackVisible");
+    }
 }
 
-function createAuraLayout(type, index) {
+async function createKeywordLottieData(text, color) {
+    const source = await loadKeywordLottieData();
+    const data = JSON.parse(JSON.stringify(source));
+    const metrics = getKeywordTextMetrics(text);
+
+    data.layers
+        .filter(layer => layer.ty === 5 && layer.nm === "Drammatico")
+        .forEach(layer => {
+            layer.t?.d?.k?.forEach(keyframe => {
+                if (keyframe.s) {
+                    keyframe.s.t = text;
+                }
+            });
+        });
+
+    resizeKeywordLottieBubble(data, metrics, color);
+    delete data.chars;
+
+    return data;
+}
+
+function getKeywordTextMetrics(text) {
+    const baseText = "Drammatico";
+    const baseWidth = estimateKeywordTextWidth(baseText);
+    const textWidth = estimateKeywordTextWidth(text);
+    const ratio = clamp(textWidth / baseWidth, 0.58, 1.8);
+    const baseOpenWidth = 465.672;
+    const targetOpenWidth = clamp(baseOpenWidth * ratio, 270, 780);
+    const extraWidth = Math.max(0, targetOpenWidth - baseOpenWidth);
+
+    return {
+        ratio,
+        visualRatio: (576 + extraWidth) / 576,
+        targetOpenWidth,
+        extraWidth
+    };
+}
+
+function estimateKeywordTextWidth(text) {
+    return String(text || "").split("").reduce((width, character) => {
+        if (character === " ") {
+            return width + 24;
+        }
+
+        if ("ilI.,'".includes(character)) {
+            return width + 24;
+        }
+
+        if ("mwMW".includes(character)) {
+            return width + 74;
+        }
+
+        if (character === character.toUpperCase() && character !== character.toLowerCase()) {
+            return width + 58;
+        }
+
+        return width + 46;
+    }, 0);
+}
+
+function resizeKeywordLottieBubble(data, metrics, color) {
+    const bubbleLayer = data.layers.find(layer => layer.ty === 4 && layer.nm === "bubble alienista 2");
+    const shape = bubbleLayer?.shapes?.[0]?.it?.find(item => item.ty === "sh");
+    const fill = bubbleLayer?.shapes?.[0]?.it?.find(item => item.ty === "fl");
+    const keyframes = shape?.ks?.k;
+
+    if (!Array.isArray(keyframes)) {
+        return;
+    }
+
+    const leftEdge = -254.24;
+    const capWidth = 59.212;
+    const openTipX = leftEdge + metrics.targetOpenWidth;
+    const openBodyX = openTipX - capWidth;
+    const compactTipX = -103.829;
+    const compactBodyX = -163.04;
+
+    keyframes.forEach(keyframe => {
+        const vertices = keyframe.s?.[0]?.v;
+
+        if (!vertices) {
+            return;
+        }
+
+        const isOpenFrame = Math.max(...vertices.map(point => point[0])) > 0;
+        const bodyX = isOpenFrame ? openBodyX : compactBodyX;
+        const tipX = isOpenFrame ? openTipX : compactTipX;
+
+        vertices[0][0] = bodyX;
+        vertices[4][0] = bodyX;
+        vertices[5][0] = tipX;
+    });
+
+    if (fill?.c?.k) {
+        fill.c.k = hexToLottieColor(color);
+    }
+
+    data.w = Math.ceil(data.w + metrics.extraWidth);
+}
+
+function hexToLottieColor(hex) {
+    const normalized = String(hex || "#0000FF").replace("#", "");
+    if (!/^[0-9a-f]{6}$/i.test(normalized)) {
+        return [0, 0, 1];
+    }
+
+    const red = parseInt(normalized.slice(0, 2), 16) / 255;
+    const green = parseInt(normalized.slice(2, 4), 16) / 255;
+    const blue = parseInt(normalized.slice(4, 6), 16) / 255;
+
+    return [red, green, blue];
+}
+
+async function loadKeywordLottieData() {
+    if (!keywordLottieDataPromise) {
+        keywordLottieDataPromise = fetch(KEYWORD_LOTTIE_PATH)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Unable to load ${KEYWORD_LOTTIE_PATH}`);
+                }
+
+                return response.json();
+            });
+    }
+
+    return keywordLottieDataPromise;
+}
+
+function createAuraElement(item) {
+    let element;
+
+    if (item.type === "book") {
+        element = createBookElement(item);
+    } else if (item.type === "looseSticker") {
+        element = createLooseStickerElement(item);
+    } else {
+        element = createKeywordElement(item);
+    }
+
+    attachAuraMotion(element, item);
+
+    return element;
+}
+
+function attachAuraMotion(element, item) {
+    const delaySeed = [
+        item.type,
+        item.stableIndex ?? "",
+        item.bookId ?? "",
+        item.text ?? "",
+        item.genre ?? ""
+    ].join(":");
+
+    element.classList.add("auraMotionElement");
+    element.style.setProperty("--aura-motion-delay", `${getMotionDelay(delaySeed)}ms`);
+}
+
+function getMotionDelay(seed) {
+    const text = String(seed);
+    let hash = 0;
+
+    for (let index = 0; index < text.length; index += 1) {
+        hash = ((hash * 31) + text.charCodeAt(index)) % 1500;
+    }
+
+    return -hash;
+}
+
+function createAuraLayout(type, index, aura, element) {
+    if (isKeywordSlot(type)) {
+        return createKeywordAuraLayout(aura, element, index);
+    }
+
     const lanes = {
         looseStickers: [
             { left: 22, top: 27 },
@@ -794,15 +1126,6 @@ function createAuraLayout(type, index) {
         { left: 22, top: 66 },
         { left: 78, top: 66 }
     ];
-    const keywordLanes = [
-        { left: 23, top: 44 },
-        { left: 30, top: 18 },
-        { left: 50, top: 30 },
-        { left: 68, top: 15 },
-        { left: 77, top: 44 },
-        { left: 22, top: 72 },
-        { left: 78, top: 72 }
-    ];
     const fallbackLanes = [
         { left: 22, top: 48 },
         { left: 28, top: 27 },
@@ -815,7 +1138,7 @@ function createAuraLayout(type, index) {
     ];
     const typeLanes = isBookSlot(type)
         ? bookLanes
-        : (isKeywordSlot(type) ? keywordLanes : (lanes[type] || fallbackLanes));
+        : (lanes[type] || fallbackLanes);
     const laneIndex = type === "looseStickers"
         ? index % typeLanes.length
         : (index + randomInt(0, typeLanes.length - 1)) % typeLanes.length;
@@ -830,12 +1153,69 @@ function createAuraLayout(type, index) {
     };
 }
 
-function getAuraJitter(type) {
-    if (type === "looseStickers") {
-        return { x: 0, y: 0 };
+function createKeywordAuraLayout(aura, element, index) {
+    const book = aura.querySelector(`.auraBook[data-book-id="${escapeCssString(element.dataset.bookId || "")}"]`);
+
+    if (!book) {
+        return createFallbackKeywordAuraLayout(index);
     }
 
-    if (isKeywordSlot(type)) {
+    const auraRect = aura.getBoundingClientRect();
+    const bookRect = book.getBoundingClientRect();
+    const bookCenterX = ((bookRect.left + (bookRect.width / 2) - auraRect.left) / auraRect.width) * 100;
+    const bookCenterY = ((bookRect.top + (bookRect.height / 2) - auraRect.top) / auraRect.height) * 100;
+    const bookWidth = (bookRect.width / auraRect.width) * 100;
+    const bookHeight = (bookRect.height / auraRect.height) * 100;
+    const elementRect = element.getBoundingClientRect();
+    const elementWidth = (elementRect.width / auraRect.width) * 100;
+    const elementHeight = (elementRect.height / auraRect.height) * 100;
+    const edgeGapX = (-4 / auraRect.width) * 100;
+    const edgeGapY = (-3 / auraRect.height) * 100;
+    const sideOffset = (bookWidth / 2) + (elementWidth / 2) + edgeGapX;
+    const verticalOffset = (bookHeight / 2) + (elementHeight / 2) + edgeGapY;
+    const lanes = [
+        { x: -sideOffset, y: -(bookHeight * 0.18) },
+        { x: sideOffset, y: -(bookHeight * 0.16) },
+        { x: -sideOffset, y: bookHeight * 0.24 },
+        { x: sideOffset, y: bookHeight * 0.22 },
+        { x: 0, y: -verticalOffset },
+        { x: 0, y: verticalOffset }
+    ];
+    const lane = lanes[index % lanes.length];
+    const jitter = { x: 1.1, y: 0.9 };
+
+    return {
+        left: clamp(bookCenterX + lane.x + randomBetween(-jitter.x, jitter.x), 4, 96),
+        top: clamp(bookCenterY + lane.y + randomBetween(-jitter.y, jitter.y), 4, 96),
+        rotation: randomLightBoxRotation(),
+        zIndex: 24 + index
+    };
+}
+
+function createFallbackKeywordAuraLayout(index) {
+    const fallbackLanes = [
+        { left: 26, top: 28 },
+        { left: 74, top: 28 },
+        { left: 24, top: 62 },
+        { left: 76, top: 62 }
+    ];
+    const lane = fallbackLanes[index % fallbackLanes.length];
+    const jitter = getAuraJitter("keyword");
+
+    return {
+        left: lane.left + randomBetween(-jitter.x, jitter.x),
+        top: lane.top + randomBetween(-jitter.y, jitter.y),
+        rotation: randomLightBoxRotation(),
+        zIndex: 24 + index
+    };
+}
+
+function getAuraJitter(type) {
+    if (type === "looseStickers") {
+        return { x: 4, y: 4 };
+    }
+
+    if (isKeywordSlot(type) || type === "keyword") {
         return { x: 9, y: 8 };
     }
 
@@ -847,39 +1227,28 @@ function placeAuraElement(aura, element, type, index) {
     aura.appendChild(element);
     const placementIndex = getAuraPlacementIndex(element, index);
     const attempts = isKeywordSlot(type) ? 96 : 48;
-    let bestLayout = null;
-    let bestCollisionCount = Infinity;
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-        const layout = createAuraLayout(type, placementIndex + attempt);
+        const layout = createAuraLayout(type, placementIndex + attempt, aura, element);
         applyAuraLayout(element, layout);
         const collisions = getCollidingAuraElements(aura, element);
         const overlapsShape = auraElementOverlapsProtectedShape(aura, element);
 
         if (!collisions.length && !overlapsShape) {
             element.style.visibility = "";
-            return;
-        }
-
-        if (!overlapsShape && collisions.length < bestCollisionCount) {
-            bestCollisionCount = collisions.length;
-            bestLayout = layout;
+            return true;
         }
 
         if (!overlapsShape && canClearAuraCollisions(type, collisions)) {
             collisions.forEach(collision => collision.remove());
             element.style.visibility = "";
-            return;
+            return true;
         }
     }
 
-    if (type === "looseStickers" && bestLayout) {
-        applyAuraLayout(element, bestLayout);
-        element.style.visibility = "";
-        return;
-    }
-
     element.remove();
+
+    return false;
 }
 
 function getAuraPlacementIndex(element, fallbackIndex) {
@@ -891,7 +1260,7 @@ function getAuraPlacementIndex(element, fallbackIndex) {
 function applyAuraLayout(element, layout) {
     element.style.left = `${layout.left}%`;
     element.style.top = `${layout.top}%`;
-    element.style.transform = `translate(-50%, -50%) rotate(${layout.rotation}deg)`;
+    element.style.setProperty("--aura-rotation", `${layout.rotation}deg`);
     element.style.zIndex = String(layout.zIndex);
 }
 
@@ -900,9 +1269,42 @@ function getCollidingAuraElements(aura, candidate) {
     const margin = candidate.classList.contains("auraKeyword") ? 5 : 10;
 
     return [...aura.children].filter(element => {
+        if (isKeywordAttachedToBook(candidate, element)) {
+            return keywordOverlapsBookTooMuch(candidateRect, element.getBoundingClientRect());
+        }
+
         return element !== candidate
             && rectsOverlap(candidateRect, getAuraCollisionRect(element), margin);
     });
+}
+
+function isKeywordAttachedToBook(candidate, element) {
+    return candidate.classList.contains("auraKeyword")
+        && element.classList.contains("auraBook")
+        && candidate.dataset.bookId
+        && candidate.dataset.bookId === element.dataset.bookId;
+}
+
+function keywordOverlapsBookTooMuch(keywordRect, bookRect) {
+    const overlapLeft = Math.max(keywordRect.left, bookRect.left);
+    const overlapRight = Math.min(keywordRect.right, bookRect.right);
+    const overlapTop = Math.max(keywordRect.top, bookRect.top);
+    const overlapBottom = Math.min(keywordRect.bottom, bookRect.bottom);
+    const overlapWidth = Math.max(0, overlapRight - overlapLeft);
+    const overlapHeight = Math.max(0, overlapBottom - overlapTop);
+
+    if (!overlapWidth || !overlapHeight) {
+        return false;
+    }
+
+    const keywordWidth = Math.max(1, keywordRect.right - keywordRect.left);
+    const keywordHeight = Math.max(1, keywordRect.bottom - keywordRect.top);
+    const keywordArea = keywordWidth * keywordHeight;
+    const overlapArea = overlapWidth * overlapHeight;
+
+    return overlapArea > keywordArea * 0.18
+        || overlapWidth > keywordWidth * 0.34
+        || overlapHeight > keywordHeight * 0.45;
 }
 
 function auraElementOverlapsProtectedShape(aura, element) {
@@ -947,14 +1349,64 @@ function getProtectedShapeRects(aura) {
 
 function canClearAuraCollisions(type, collisions) {
     if (isBookSlot(type)) {
-        return collisions.every(element => !isBookSlot(element.dataset.auraType));
+        return collisions.every(element => {
+            return !isBookSlot(element.dataset.auraType) && !isFreshAuraElement(element);
+        });
     }
 
     if (isKeywordSlot(type)) {
-        return collisions.every(element => element.dataset.auraType === "looseStickers");
+        return collisions.every(element => {
+            return element.dataset.auraType === "looseStickers" && !isFreshAuraElement(element);
+        });
     }
 
     return false;
+}
+
+function hasFreshKeywordInSlot(aura, type) {
+    return [...aura.querySelectorAll(`.auraKeyword[data-aura-type="${type}"]`)]
+        .some(isFreshKeyword);
+}
+
+function hasFreshAuraElementInType(aura, type) {
+    return [...aura.querySelectorAll(`[data-aura-type="${type}"]`)]
+        .some(isFreshAuraElement);
+}
+
+function isFreshAuraElement(element) {
+    if (isFreshBook(element)) {
+        return true;
+    }
+
+    const createdAt = Number(element.dataset.createdAt);
+
+    return Number.isFinite(createdAt) && Date.now() - createdAt < MIN_AURA_ELEMENT_VISIBLE_MS;
+}
+
+function isFreshKeyword(element) {
+    if (!element.classList.contains("auraKeyword")) {
+        return false;
+    }
+
+    const createdAt = Number(element.dataset.createdAt);
+
+    return Number.isFinite(createdAt) && Date.now() - createdAt < MIN_KEYWORD_VISIBLE_MS;
+}
+
+function hasFreshBookInSlot(aura, type) {
+    const currentBook = aura.querySelector(`.auraBook[data-aura-type="${type}"]`);
+
+    return currentBook ? isFreshBook(currentBook) : false;
+}
+
+function isFreshBook(element) {
+    if (!element.classList.contains("auraBook")) {
+        return false;
+    }
+
+    const createdAt = Number(element.dataset.createdAt);
+
+    return Number.isFinite(createdAt) && Date.now() - createdAt < MIN_BOOK_VISIBLE_MS;
 }
 
 function getAuraCollisionRect(element) {
@@ -1053,16 +1505,31 @@ function rectsOverlap(a, b, margin) {
         && a.bottom > b.top - margin;
 }
 
-function chooseVisibleAuraItems(items, type, aura) {
+function chooseVisibleAuraItems(items, type, aura, options = {}) {
     if (isBookSlot(type)) {
         return chooseBookSlotItem(items, type, aura);
     }
 
     if (isKeywordSlot(type)) {
         const visibleKeywords = getVisibleKeywordTexts(aura, type);
+        const visibleBookIds = getVisibleBookIds(aura);
+        const visibleKeywordCounts = getVisibleKeywordCountsByBook(aura, type);
+        const assignedBookId = getBookIdForKeywordSlot(aura, type);
+        const candidateBookIds = options.preferredBookId && visibleBookIds.has(options.preferredBookId)
+            ? [options.preferredBookId]
+            : (assignedBookId ? [assignedBookId] : [...visibleBookIds]);
+        const availableBookIds = candidateBookIds.filter(bookId => {
+            return (visibleKeywordCounts.get(bookId) || 0) < MAX_VISIBLE_KEYWORDS_PER_BOOK;
+        });
+        const leastUsedCount = availableBookIds.length
+            ? Math.min(...availableBookIds.map(bookId => visibleKeywordCounts.get(bookId) || 0))
+            : 0;
 
         return shuffle(items.filter(item => {
-            return item.type === "keyword" && !visibleKeywords.has(item.text);
+            return item.type === "keyword"
+                && availableBookIds.includes(item.bookId)
+                && !visibleKeywords.has(item.text)
+                && (visibleKeywordCounts.get(item.bookId) || 0) === leastUsedCount;
         }))
             .slice(0, 1);
     }
@@ -1081,9 +1548,12 @@ function chooseVisibleAuraItems(items, type, aura) {
 
 function chooseBookSlotItem(items, type, aura) {
     const visibleBookIds = getVisibleBookIds(aura, type);
-    const books = shuffle(items.filter(item => {
+    const previousBookId = getCurrentSlotBookId(aura, type);
+    const availableBooks = items.filter(item => {
         return item.type === "book" && !visibleBookIds.has(item.bookId);
-    }));
+    });
+    const freshBooks = availableBooks.filter(item => item.bookId !== previousBookId);
+    const books = shuffle(freshBooks.length ? freshBooks : availableBooks);
     const slotIndex = BOOK_SLOT_TYPES.indexOf(type);
 
     if (!books.length) {
@@ -1091,6 +1561,33 @@ function chooseBookSlotItem(items, type, aura) {
     }
 
     return [books[slotIndex % books.length]];
+}
+
+function getKeywordSlotsForBook(aura, bookId) {
+    const visibleBookIds = [...getVisibleBookIds(aura)];
+    const bookIndex = visibleBookIds.indexOf(bookId);
+    const slotStart = Math.max(0, bookIndex) * MAX_VISIBLE_KEYWORDS_PER_BOOK;
+
+    return KEYWORD_SLOT_TYPES.slice(slotStart, slotStart + MAX_VISIBLE_KEYWORDS_PER_BOOK);
+}
+
+function getBookIdForKeywordSlot(aura, type) {
+    const slotIndex = KEYWORD_SLOT_TYPES.indexOf(type);
+
+    if (slotIndex === -1) {
+        return "";
+    }
+
+    const visibleBookIds = [...getVisibleBookIds(aura)];
+    const bookIndex = Math.floor(slotIndex / MAX_VISIBLE_KEYWORDS_PER_BOOK);
+
+    return visibleBookIds[bookIndex] || "";
+}
+
+function getCurrentSlotBookId(aura, type) {
+    const currentBook = aura.querySelector(`.auraBook[data-aura-type="${type}"]`);
+
+    return currentBook ? currentBook.dataset.bookId : "";
 }
 
 function getVisibleBookIds(aura, currentType) {
@@ -1111,6 +1608,22 @@ function getVisibleKeywordTexts(aura, currentType) {
     );
 }
 
+function getVisibleKeywordCountsByBook(aura, currentType) {
+    const counts = new Map();
+
+    [...aura.querySelectorAll(".auraKeyword")]
+        .filter(element => element.dataset.auraType !== currentType)
+        .forEach(element => {
+            const bookId = element.dataset.bookId;
+
+            if (bookId) {
+                counts.set(bookId, (counts.get(bookId) || 0) + 1);
+            }
+        });
+
+    return counts;
+}
+
 function isBookSlot(type) {
     return BOOK_SLOT_TYPES.includes(type);
 }
@@ -1129,6 +1642,20 @@ function randomBetween(min, max) {
 
 function randomInt(min, max) {
     return Math.floor(min + (Math.random() * ((max - min) + 1)));
+}
+
+function randomLightBoxRotation() {
+    const direction = Math.random() > 0.5 ? 1 : -1;
+
+    return direction * randomBetween(LIGHT_BOX_ROTATION_MIN_DEG, LIGHT_BOX_ROTATION_MAX_DEG);
+}
+
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+function escapeCssString(value) {
+    return String(value).replace(/["\\]/g, "\\$&");
 }
 
 function capitalize(value) {

@@ -83,18 +83,7 @@ body{
     text-align:center;
     box-shadow:none;
     transform-origin:center;
-}
-
-.centerUserButtons button:nth-child(3n + 1){
-    transform:rotate(-2deg);
-}
-
-.centerUserButtons button:nth-child(3n + 2){
-    transform:rotate(1deg);
-}
-
-.centerUserButtons button:nth-child(3n){
-    transform:rotate(-1deg);
+    transform:rotate(var(--mobile-box-rotation, 0deg));
 }
 
 .centerMobileMessage{

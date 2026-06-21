@@ -1,5 +1,7 @@
 const socket = io();
 const deviceId = localStorage.getItem("deviceId");
+const LIGHT_BOX_ROTATION_MIN_DEG = 4;
+const LIGHT_BOX_ROTATION_MAX_DEG = 8;
 
 socket.on("update", () => {
     loadUsers();
@@ -36,6 +38,7 @@ function renderUsers(users) {
         const button = document.createElement("button");
         button.type = "button";
         button.innerText = user.nickname;
+        button.style.setProperty("--mobile-box-rotation", `${randomLightBoxRotation()}deg`);
 
         if (currentUser.approachTargetId === targetDeviceId) {
             button.classList.add("isActive");
@@ -71,3 +74,13 @@ async function approachUser(targetDeviceId) {
 }
 
 loadUsers();
+
+function randomLightBoxRotation() {
+    const direction = Math.random() > 0.5 ? 1 : -1;
+
+    return direction * randomBetween(LIGHT_BOX_ROTATION_MIN_DEG, LIGHT_BOX_ROTATION_MAX_DEG);
+}
+
+function randomBetween(min, max) {
+    return min + (Math.random() * (max - min));
+}

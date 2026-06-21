@@ -2,6 +2,12 @@
     box-sizing:border-box;
 }
 
+@property --aura-motion-y{
+    syntax:"<length>";
+    inherits:false;
+    initial-value:0px;
+}
+
 body{
     --aura-sticker-base-size:clamp(40px, 4.6vw, 68px);
     --center-visual-scale:1;
@@ -70,8 +76,8 @@ body{
     position:absolute;
     top:clamp(8px, 2vh, 24px);
     left:var(--book-match-anchor, 50%);
-    width:calc(clamp(430px, 36vw, 560px) * var(--match-user-scale));
-    height:calc(clamp(285px, 33vh, 380px) * var(--match-user-scale));
+    width:calc(clamp(520px, 46vw, 700px) * var(--match-user-scale));
+    height:calc(clamp(295px, 34vh, 390px) * var(--match-user-scale));
     transform:translateX(-50%);
     animation:bookMatchEnter 0.42s ease both;
 }
@@ -80,6 +86,16 @@ body{
 .bookMatchBottomLayer{
     position:absolute;
     inset:0;
+}
+
+.bookMatchKeywordLayer{
+    z-index:4;
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) max-content minmax(0, 1fr);
+    column-gap:clamp(18px, 2.8vw, 34px);
+    align-items:start;
+    padding-top:13%;
+    pointer-events:none;
 }
 
 .bookMatchKeywordCloud,
@@ -121,19 +137,21 @@ body{
 }
 
 .bookMatchKeywordCloud{
-    top:13%;
+    position:relative;
     display:grid;
     gap:calc(clamp(6px, 0.8vw, 10px) * var(--match-user-scale));
-    width:27%;
+    width:max-content;
+    max-width:100%;
+    min-width:0;
 }
 
 .bookMatchKeywordCloud-left{
-    left:2%;
+    justify-self:end;
     justify-items:start;
 }
 
 .bookMatchKeywordCloud-right{
-    right:2%;
+    justify-self:start;
     justify-items:end;
 }
 
@@ -146,13 +164,14 @@ body{
 }
 
 .bookMatchGeneratedKeyword{
-    top:25%;
-    left:50%;
-    transform:translate(-50%, -50%);
-}
-
-.bookMatchKeywordCloud .bookMatchPill{
+    position:relative;
+    z-index:3;
+    display:grid;
+    justify-self:center;
+    justify-items:center;
+    width:max-content;
     max-width:100%;
+    min-width:0;
 }
 
 .bookMatchBottomLayer{
@@ -309,44 +328,36 @@ body{
     align-items:center;
     justify-content:center;
     width:max-content;
+    height:calc(42px * var(--center-keyword-scale) * 1.05);
     min-width:0;
-    max-width:min(calc(275px * var(--center-keyword-scale)), 48vw);
-    padding:calc(0.5em * var(--center-keyword-scale)) calc(1.02em * var(--center-keyword-scale)) calc(0.54em * var(--center-keyword-scale));
+    max-width:min(calc(275px * var(--center-keyword-scale) * 1.05), 48vw);
+    padding:0 calc(1.02em * var(--center-keyword-scale) * 1.05);
     border-radius:999px;
-    color:#fff;
+    box-sizing:border-box;
+    color:#ffffff;
     font-weight:700;
     line-height:1;
     letter-spacing:0;
     text-align:center;
-    white-space:normal;
+    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-keyword-scale) * 1.05);
+    white-space:nowrap;
     overflow-wrap:anywhere;
     transform:rotate(var(--match-pill-rotation, 0deg));
 }
 
 .bookMatchPill-blue{
     background:#0000FF;
+    color:#ffffff;
 }
 
 .bookMatchPill-lavender{
-    background:#9797FD;
+    background:var(--aura-keyword-color, #9797FD);
+    color:#ffffff;
 }
 
 .bookMatchPill-white{
     background:#fff;
     color:#0000FF;
-}
-
-.bookMatchPill-medium{
-    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-keyword-scale));
-}
-
-.bookMatchPill-large{
-    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-keyword-scale));
-}
-
-.bookMatchPill-hero{
-    padding:calc(0.575em * var(--center-keyword-scale)) calc(1.173em * var(--center-keyword-scale)) calc(0.621em * var(--center-keyword-scale));
-    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-keyword-scale) * 1.15);
 }
 
 @keyframes bookMatchEnter{
@@ -409,7 +420,8 @@ body.centerTwoUsers .centerUserAura{
     .bookMatchSharedSticker,
     .bookMatchStyleStack,
     .bookMatchKeywordCloud,
-    .bookMatchGeneratedKeyword{
+    .bookMatchGeneratedKeyword,
+    .auraMotionElement{
         opacity:1;
         animation:none;
     }
@@ -444,7 +456,15 @@ body.centerTwoUsers .centerUserAura{
 .auraKeyword,
 .auraLooseSticker{
     position:absolute;
+    --aura-motion-y:0px;
+    --aura-rotation:0deg;
+    transform:translate(-50%, calc(-50% + var(--aura-motion-y))) rotate(var(--aura-rotation));
     transform-origin:center;
+}
+
+.auraMotionElement{
+    animation:auraMotionFloat 2.6s ease-in-out infinite;
+    animation-delay:var(--aura-motion-delay, 0ms);
 }
 
 .auraBook{
@@ -473,34 +493,96 @@ body.centerTwoUsers .centerUserAura{
     width:calc(var(--aura-sticker-base-size) * var(--center-user-scale) * var(--center-visual-scale));
     height:auto;
     aspect-ratio:1 / 1;
+}
+
+.auraLooseStickerImage{
+    display:block;
+    width:100%;
+    height:100%;
     object-fit:contain;
 }
 
 .auraKeyword{
+    display:block;
+    width:calc(clamp(136px, 11.5vw, 190px) * var(--aura-keyword-width-ratio, 1) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
+    height:calc(clamp(76.5px, 6.47vw, 106.875px) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
+    aspect-ratio:var(--aura-keyword-aspect, 16 / 9);
+    color:#ffffff;
+}
+
+.auraKeywordAnimation,
+.auraKeywordAnimation svg{
+    display:block;
+    width:100%;
+    height:100%;
+}
+
+.auraKeywordFallback{
+    position:absolute;
+    width:1px;
+    height:1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+    white-space:nowrap;
+}
+
+.auraKeywordFallbackVisible{
+    display:block;
+}
+
+.auraKeywordFallbackVisible .auraKeywordAnimation{
+    display:none;
+}
+
+.auraKeywordFallbackVisible .auraKeywordFallback{
+    position:absolute;
+    top:50%;
+    left:50%;
     display:inline-flex;
     align-items:center;
     justify-content:center;
     width:max-content;
+    height:calc(clamp(76.5px, 6.47vw, 106.875px) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
     min-width:0;
-    max-width:min(calc(275px * var(--center-user-scale)), 48vw);
-    padding:calc(0.5em * var(--center-user-scale)) calc(1.02em * var(--center-user-scale)) calc(0.54em * var(--center-user-scale));
+    max-width:min(calc(275px * var(--center-user-scale) * 1.05), 48vw);
+    padding:0 calc(1.02em * var(--center-user-scale) * 1.05);
+    box-sizing:border-box;
     border-radius:999px;
-    color:#fff;
-    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-user-scale));
+    background:var(--aura-keyword-color, #9797FD);
+    color:#ffffff;
+    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-user-scale) * 1.05);
     font-weight:700;
     line-height:1;
     letter-spacing:0;
     text-align:center;
-    white-space:normal;
+    white-space:nowrap;
     overflow-wrap:anywhere;
+    overflow:visible;
+    clip:auto;
+    transform:translate(-50%, -50%);
 }
 
-.auraKeywordBlue{
-    background:#0000FF;
-}
+@keyframes auraMotionFloat{
+    0%,
+    100%{
+        --aura-motion-y:0px;
+    }
 
-.auraKeywordLavender{
-    background:#9797FD;
+    18%{
+        --aura-motion-y:-7px;
+    }
+
+    36%{
+        --aura-motion-y:5px;
+    }
+
+    56%{
+        --aura-motion-y:-4px;
+    }
+
+    74%{
+        --aura-motion-y:3px;
+    }
 }
 
 .centerUserLeft .centerUserNickname{
@@ -544,26 +626,18 @@ body.centerTwoUsers .centerUserLeft .centerUserNickname{
 
     .bookMatchScene{
         top:6px;
-        width:calc(88vw * var(--match-user-scale));
-        height:calc(clamp(250px, 36vh, 315px) * var(--match-user-scale));
+        width:calc(92vw * var(--match-user-scale));
+        height:calc(clamp(255px, 36vh, 320px) * var(--match-user-scale));
+    }
+
+    .bookMatchKeywordLayer{
+        grid-template-columns:minmax(0, 1fr) max-content minmax(0, 1fr);
+        column-gap:clamp(12px, 3.2vw, 22px);
+        padding-top:14%;
     }
 
     .bookMatchKeywordCloud{
-        top:14%;
-        width:30%;
         gap:6px;
-    }
-
-    .bookMatchKeywordCloud-left{
-        left:1%;
-    }
-
-    .bookMatchKeywordCloud-right{
-        right:1%;
-    }
-
-    .bookMatchGeneratedKeyword{
-        top:26%;
     }
 
     .bookMatchBookCluster{
@@ -607,22 +681,12 @@ body.centerTwoUsers .centerUserLeft .centerUserNickname{
     }
 
     .bookMatchPill{
-        max-width:188px;
+        width:max-content;
+        height:calc(40px * var(--center-keyword-scale) * 1.05);
+        max-width:calc(188px * 1.05);
         min-width:0;
-        padding:calc(0.52em * var(--center-keyword-scale)) calc(1em * var(--center-keyword-scale)) calc(0.56em * var(--center-keyword-scale));
-    }
-
-    .bookMatchPill-medium{
-        font-size:calc(0.65rem * var(--center-keyword-scale));
-    }
-
-    .bookMatchPill-large{
-        font-size:calc(0.65rem * var(--center-keyword-scale));
-    }
-
-    .bookMatchPill-hero{
-        padding:calc(0.598em * var(--center-keyword-scale)) calc(1.15em * var(--center-keyword-scale)) calc(0.644em * var(--center-keyword-scale));
-        font-size:calc(0.65rem * var(--center-keyword-scale) * 1.15);
+        padding:0 calc(1em * var(--center-keyword-scale) * 1.05);
+        font-size:calc(0.65rem * var(--center-keyword-scale) * 1.05);
     }
 
     .centerUser{
@@ -637,10 +701,8 @@ body.centerTwoUsers .centerUserLeft .centerUserNickname{
     }
 
     .auraKeyword{
-        max-width:188px;
-        min-width:0;
-        padding:calc(0.52em * var(--center-user-scale)) calc(1em * var(--center-user-scale)) calc(0.56em * var(--center-user-scale));
-        font-size:calc(0.65rem * var(--center-user-scale));
+        width:calc(148px * var(--aura-keyword-width-ratio, 1) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
+        height:calc(83.25px * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
     }
 
     .centerUserNickname{
