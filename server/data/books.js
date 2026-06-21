@@ -123,7 +123,7 @@ module.exports = {
     title: "Intermezzo",
     author: "Sally Rooney",
     coverImage: "Intermezzo.png",
-    genres: ["rosa", "biografico", "giallo"],
+    genres: ["rosa", "biografico"],
     narrativeStyles: ["Minimalista", "Realistico", "Lirico"],
     topic: ["Relazioni", "Lutto", "Identità emotiva"],
     plot: ["Lutto", "Fratelli", "Relazioni", "Crisi emotiva", "Elaborazione", "Conflitto interiore"],
@@ -147,5 +147,155 @@ module.exports = {
     temporalSetting: "Novecento e contemporaneo",
     geographicSetting: "Italia e contesto internazionale",
     moral: ["Comprensione del design", "Valore della progettazione", "Osservazione del quotidiano"]
+  },
+
+  book11: {
+    title: "Mar del plata",
+    author: "Claudio Fava",
+    coverImage: "Mar del plata.png",
+    genres: ["storico", "biografico"],
+    narrativeStyles: ["Drammatico", "Realistico"],
+    topic: ["Dittatura", "Libertà", "Amicizia", "Memoria", "Resistenza", "Sport"],
+    plot: ["Desaparecidos", "Persecuzione politica", "Rugby", "Scomparsa", "Solidarietà", "Sacrificio", "Sopravvivenza"],
+    protagonists: ["Amici", "Compagni di squadra"],
+    characters: ["Raul", "Javier", "Teresa", "Hugo Passarella"],
+    temporalSetting: "1970s",
+    geographicSetting: ["Buenos Aires", "La Plata", "Argentina"],
+    moral: ["Memoria delle vittime", "Forza della solidarietà", "Difesa della libertà"]
+  },
+
+  book12: {
+    title: "Uno studio in rosso",
+    author: "Arthur Conan Doyle",
+    coverImage: "Uno studio in rosso.png",
+    genres: ["giallo", "thriller", "storico"],
+    narrativeStyles: ["Cinematografico", "Realistico"],
+    topic: ["Investigazione", "Mistero", "Giustizia", "Vendetta", "Crimine", "Deduzione"],
+    plot: ["Omicidio", "Indagine", "Enigmi", "Indizi", "Inseguimento", "Rivelazione"],
+    protagonists: ["Amici", "Investigatore"],
+    characters: ["Sherlock Holmes", "John Watson", "Jefferson Hope", "Gregson", "Lestrade"],
+    temporalSetting: "Età vittoriana",
+    geographicSetting: ["Londra"],
+    moral: ["Ricerca della verità", "Potere dell'osservazione", "Giustizia e conseguenze", "Valore della razionalità"]
+  },
+
+  book13: {
+    title: "Il buio oltre la siepe",
+    author: "Harper Lee",
+    coverImage: "Il buio oltre la siepe.png",
+    genres: ["storico", "ragazzi"],
+    narrativeStyles: ["Realistico", "Drammatico"],
+    topic: ["Giustizia", "Infanzia", "Razzismo", "Pregiudizio", "Empatia", "Famiglia", "Comunità"],
+    plot: ["Crescita", "Processo", "Accusa ingiusta", "Paura del diverso", "Difesa legale", "Innocenza"],
+    protagonists: ["Bambina", "Avvocato", "Uomo accusato", "Fratello", "Vicino misterioso"],
+    characters: ["Scout Finch", "Atticus Finch", "Jem Finch", "Tom Robinson", "Boo Radley", "Mayella Ewell"],
+    temporalSetting: ["1930s", "Grande Depressione"],
+    geographicSetting: ["Alabama", "Stati Uniti"],
+    moral: ["Empatia", "Coraggio civile", "Condanna del pregiudizio", "Difesa degli innocenti"]
+  },
+
+  book14: {
+    title: "La strada",
+    author: "Cormac McCarthy",
+    coverImage: "La strada.png",
+    genres: ["avventura", "fantascienza"],
+    narrativeStyles: ["Minimalista", "Drammatico"],
+    topic: ["Sopravvivenza", "Paternita", "Speranza", "Paura", "Umanita", "Fine del mondo", "Fame"],
+    plot: ["Viaggio", "Paesaggio devastato", "Minacce", "Ricerca di cibo", "Protezione", "Perdita"],
+    protagonists: ["Padre", "Figlio", "Sopravvissuti", "Predatori", "Viandanti"],
+    characters: ["Ely"],
+    temporalSetting: "Futuro post-apocalittico",
+    geographicSetting: "Stati Uniti",
+    moral: ["Custodire l'umanità", "Amore come resistenza", "Speranza", "Protezione dell'innocenza"]
+  },
+
+  book15: {
+    title: "Alice nel Paese delle Meraviglie",
+    author: "Lewis Carroll",
+    coverImage: "Alice nel Paese delle Meraviglie.png",
+    genres: ["bambini", "fantasy", "umoristico"],
+    narrativeStyles: ["Onirico", "Umoristico"],
+    topic: ["Immaginazione", "Identità", "Assurdo", "Linguaggio", "Crescita", "Regole capovolte"],
+    plot: ["Caduta nella tana", "Incontri strani", "Trasformazioni", "Giochi di parole", "Risveglio"],
+    protagonists: ["Bambina", "Animale parlante", "Regina", "Cappellaio", "Creatura fantastica"],
+    characters: ["Alice", "Bianconiglio", "Cappellaio Matto", "Regina di Cuori", "Stregatto", "Brucaliffo"],
+    temporalSetting: "Età vittoriana",
+    geographicSetting: "Paese delle Meraviglie",
+    moral: ["Curiosità", "Immaginazione", "Diffidenza verso le regole", "Identità flessibile"]
+  },
+
+  book16: {
+    title: "Matilde",
+    author: "Roald Dahl",
+    coverImage: "Matilde.png",
+    genres: ["bambini", "ragazzi", "umoristico"],
+    narrativeStyles: ["Umoristico", "Realistico"],
+    topic: ["Infanzia", "Intelligenza", "Lettura", "Ingiustizia", "Famiglia", "Scuola", "Riscatto"],
+    plot: ["Bambina geniale", "Scoperta dei poteri", "Tirannia scolastica", "Ribellione", "Nuova famiglia"],
+    protagonists: ["Bambina", "Maestra", "Preside autoritaria", "Genitori negligenti", "Studenti"],
+    characters: ["Matilde Wormwood", "Miss Honey", "Miss Trinciabue", "Mr Wormwood", "Mrs Wormwood", "Lavender"],
+    temporalSetting: "Novecento",
+    geographicSetting: ["Piccola citta inglese", "Scuola elementare"],
+    moral: ["Potere della lettura", "Giustizia contro l'abuso", "Autonomia", "Gentilezza come forza"]
+  },
+
+  book17: {
+    title: "Frankenstein",
+    author: "Mary Shelley",
+    coverImage: "Frankenstein.png",
+    genres: ["horror", "fantascienza"],
+    narrativeStyles: ["Gotico", "Drammatico"],
+    topic: ["Creazione", "Solitudine", "Responsabilità", "Scienza", "Abbandono", "Mostruosità", "Colpa"],
+    plot: ["Esperimento scientifico", "Rifiuto", "Vendetta", "Inseguimento", "Tragedia familiare"],
+    protagonists: ["Scienziato", "Mostro", "Esploratore", "Promessa sposa", "Vittima"],
+    characters: ["Victor Frankenstein", "La Creatura", "Robert Walton", "Elizabeth Lavenza", "Henry Clerval", "William Frankenstein"],
+    temporalSetting: "Settecento",
+    geographicSetting: "Ginevra, Ingolstadt, Alpi, Scozia e Artico",
+    moral: ["Danni dell'abbandono", "Limiti della scienza", "Attenzione per il diverso"]
+  },
+
+  book18: {
+    title: "Dracula",
+    author: "Bram Stoker",
+    coverImage: "Dracula.png",
+    genres: ["horror"],
+    narrativeStyles: ["Gotico", "Cinematografico"],
+    topic: ["Paura", "Desiderio", "Male", "Contagio", "Modernità", "Sessualità", "Superstizione"],
+    plot: ["Viaggio in Transilvania", "Castello", "Caccia al mostro", "Diari e lettere"],
+    protagonists: ["Vampiro", "Avvocato", "Medico", "Cacciatore"],
+    characters: ["Conte Dracula", "Jonathan Harker", "Mina Murray", "Lucy Westenra", "Abraham Van Helsing", "Renfield"],
+    temporalSetting: ["Fine Ottocento", "Età vittoriana"],
+    geographicSetting: ["Transilvania", "Inghilterra"],
+    moral: ["Forza della comunità", "Coraggio davanti all'ignoto", "Fragilità del desiderio"]
+  },
+
+  book19: {
+    title: "Shining",
+    author: "Stephen King",
+    coverImage: "Shining.png",
+    genres: ["horror", "thriller"],
+    narrativeStyles: ["Gotico", "Cinematografico"],
+    topic: ["Famiglia", "Follia", "Paura", "Dipendenza", "Isolamento", "Violenza", "Infanzia"],
+    plot: ["Custode invernale", "Hotel infestato", "Poteri psichici", "Crollo mentale", "Fuga"],
+    protagonists: ["Scrittore", "Padre", "Bambino sensitivo", "Madre", "Cuoco", "Presenza maligna"],
+    characters: ["Jack Torrance", "Danny Torrance", "Wendy Torrance", "Dick Hallorann", "Stuart Ullman", "Lloyd"],
+    temporalSetting: "1970s",
+    geographicSetting: ["Colorado", "Stati Uniti"],
+    moral: ["Protezione dei figli", "Pericolo dell'isolamento", "Conseguenze della dipendenza", "Sopravvivenza al trauma"]
+  },
+
+  book20: {
+    title: "Sapiens",
+    author: "Yuval Noah Harari",
+    coverImage: "Sapiens.png",
+    genres: ["saggistica", "storico"],
+    narrativeStyles: ["Realistico", "Epico"],
+    topic: ["Umanità", "Evoluzione", "Cultura", "Religione", "Economia", "Impero", "Scienza"],
+    plot: ["Rivoluzione agricola", "Nascita delle società", "Denaro", "Imperi", "Rivoluzione scientifica"],
+    protagonists: ["Essere umano", "Homo sapiens", "Società", "Cacciatori-raccoglitori", "Agricoltori", "Scienziati"],
+    characters: ["Homo sapiens", "Homo neanderthalensis", "Homo erectus"],
+    temporalSetting: "Storia dell'umanità",
+    geographicSetting: "Globo",
+    moral: ["Consapevolezza storica", "Responsabilità collettiva", "Critica del progresso", "Comprensione dei miti condivisi"]
   }
 };
