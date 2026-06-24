@@ -1,14 +1,44 @@
 const params = new URLSearchParams(window.location.search);
 const bookId = params.get("book");
+const pageTitle = document.getElementById("pageTitle");
 const bookTitle = document.getElementById("bookTitle");
+const bookAuthor = document.getElementById("bookAuthor");
 const bookCover = document.getElementById("bookCover");
+const stickerLayer = document.getElementById("stickerLayer");
 const confirmButton = document.getElementById("confirmButton");
+const backButton = document.getElementById("backButton");
 const successMessage = document.getElementById("successMessage");
 const errorMessage = document.getElementById("errorMessage");
+const feedbackOverlay = document.getElementById("feedbackOverlay");
+const STICKER_BY_GENRE = {
+    azione: "Azione.png",
+    avventura: "Avventura.png",
+    bambini: "Ragazzi.png",
+    biografico: "Biografico.png",
+    fantascienza: "Fantascienza.png",
+    fantasy: "Fantasy.png",
+    giallo: "Giallo.png",
+    horror: "Horror.png",
+    ragazzi: "Ragazzi.png",
+    rosa: "Rosa.png",
+    saggistica: "Saggistica.png",
+    storico: "Storico.png",
+    thriller: "Thriller.png",
+    umoristico: "Umoristico.png"
+};
+const STICKER_COUNT = 10;
+const FEATURED_BOOK_TITLES = new Set([
+    "Trentatrè piccole storie di design",
+    "Intermezzo",
+    "Mar del plata",
+    "Uno studio in rosso"
+]);
 
 initNfcPage();
 
 async function initNfcPage() {
+    backButton.addEventListener("click", goBack);
+
     const canContinue = await ensureRegisteredUser();
 
     if (!canContinue) {
@@ -73,7 +103,10 @@ async function loadBook(bookId) {
 
         const book = await res.json();
 
+        pageTitle.textContent = FEATURED_BOOK_TITLES.has(book.title) ? "Libro di punta" : "";
         bookTitle.textContent = book.title;
+        bookAuthor.textContent = book.author || "";
+        renderGenreStickers(book.genres);
 
         if (book.coverImage) {
             bookCover.src = `/books/${encodeURIComponent(book.coverImage)}`;
@@ -89,14 +122,62 @@ async function loadBook(bookId) {
 
 function showError(message) {
     hidePageLoader();
+    pageTitle.textContent = "";
     bookTitle.textContent = "Errore";
+    bookAuthor.textContent = "";
+    stickerLayer.replaceChildren();
     bookCover.hidden = true;
     confirmButton.disabled = true;
     errorMessage.textContent = message;
 }
 
+function renderGenreStickers(genres = []) {
+    const stickerFiles = genres
+        .map(genre => STICKER_BY_GENRE[String(genre).toLowerCase()])
+        .filter(Boolean);
+
+    if (!stickerFiles.length) {
+        stickerLayer.replaceChildren();
+        return;
+    }
+
+    const stickers = Array.from({ length: STICKER_COUNT }, (_, index) => {
+        const img = document.createElement("img");
+        const file = stickerFiles[index % stickerFiles.length];
+
+        img.className = "genre-sticker";
+        img.src = `/stickers/${encodeURIComponent(file)}`;
+        img.alt = "";
+
+        return img;
+    });
+
+    stickerLayer.replaceChildren(...stickers);
+}
+
+function goBack() {
+    if (window.history.length > 1) {
+        window.history.back();
+        return;
+    }
+
+    window.location.href = "/mobile";
+}
+
 function hidePageLoader() {
     document.body.classList.remove("loading");
+}
+
+function showAddBookFeedback() {
+    return new Promise((resolve) => {
+        if (!feedbackOverlay) {
+            setTimeout(resolve, 2000);
+            return;
+        }
+
+        feedbackOverlay.hidden = false;
+        setTimeout(resolve, 2000);
+    });
 }
 
 async function confirmBook(bookId) {
@@ -128,12 +209,8 @@ async function confirmBook(bookId) {
             throw new Error(data.error || "Errore aggiunta libro");
         }
 
-        successMessage.style.display = "block";
-        confirmButton.style.display = "none";
-
-        setTimeout(() => {
-            window.location.href = "/mobile";
-        }, 2000);
+        await showAddBookFeedback();
+        window.location.href = "/mobile";
     } catch (err) {
         showError(err.message);
         confirmButton.disabled = false;

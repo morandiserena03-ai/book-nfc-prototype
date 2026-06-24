@@ -1,8 +1,15 @@
+@import url("/shared/fonts.css");
+
 *{
     box-sizing:border-box;
 }
 
 .desktopHeader{
+    display:none;
+}
+
+.desktopMenuButton,
+.desktopMenuPanel{
     display:none;
 }
 
@@ -45,7 +52,8 @@
     color:#05053E;
     font-family:"PP Monument Wide", sans-serif;
     font-size:clamp(0.54rem, 2.4vw, 0.68rem);
-    line-height:1;
+    font-synthesis:none;
+    line-height:1.3225;
     text-align:center;
     text-decoration:none;
 }
@@ -92,13 +100,19 @@
         align-items:center;
         gap:clamp(46px, 6vw, 120px);
         color:white;
-        font-family:"PP Monument Wide", sans-serif;
+        font-family:"Book Nav Regular", "PP Monument Wide", sans-serif;
+        font-weight:400;
+        font-synthesis:none;
+        font-synthesis-weight:none;
         font-size:clamp(0.9rem, 1vw, 1.18rem);
-        line-height:1;
+        line-height:1.3225;
     }
 
     .desktopNav a{
         color:white;
+        font-weight:400;
+        font-synthesis:none;
+        font-synthesis-weight:none;
         text-decoration:none;
         cursor:pointer;
         opacity:0.96;
@@ -110,5 +124,107 @@
 
     .mobileNav{
         display:none;
+    }
+
+    .desktopHeaderDrawer{
+        position:fixed;
+        transform:none;
+    }
+
+    .desktopHeaderDrawer .brandLink{
+        transform:none;
+    }
+
+    .desktopMenuButton{
+        position:fixed;
+        top:clamp(24px, 3.8vw, 44px);
+        right:clamp(24px, 3.8vw, 44px);
+        z-index:70;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        width:clamp(34px, 3.36vw, 45px);
+        height:clamp(34px, 3.36vw, 45px);
+        padding:7px;
+        border:0;
+        border-radius:0;
+        background:transparent;
+        cursor:pointer;
+        pointer-events:auto;
+    }
+
+    .desktopMenuButton::before,
+    .desktopMenuButton::after{
+        content:"";
+        position:absolute;
+        top:50%;
+        left:50%;
+        width:72%;
+        height:4px;
+        border-radius:999px;
+        background:white;
+        opacity:0;
+        transform:translate(-50%, -50%) rotate(0deg);
+        transition:opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .desktopMenuButton img{
+        display:block;
+        width:100%;
+        height:100%;
+        object-fit:contain;
+        transition:opacity 0.18s ease;
+    }
+
+    .desktopHeaderDrawer.menuOpen .desktopMenuButton img{
+        opacity:0;
+    }
+
+    .desktopHeaderDrawer.menuOpen .desktopMenuButton::before{
+        opacity:1;
+        transform:translate(-50%, -50%) rotate(45deg);
+    }
+
+    .desktopHeaderDrawer.menuOpen .desktopMenuButton::after{
+        opacity:1;
+        transform:translate(-50%, -50%) rotate(-45deg);
+    }
+
+    .desktopHeaderDrawer .desktopMenuPanel{
+        position:fixed;
+        top:0;
+        right:0;
+        bottom:0;
+        z-index:60;
+        display:flex;
+        width:33.333vw;
+        height:100dvh;
+        flex-direction:column;
+        align-items:flex-start;
+        justify-content:flex-start;
+        gap:28px;
+        padding:clamp(110px, 12vw, 150px) clamp(28px, 3.8vw, 56px) 48px;
+        background:#05053E;
+        box-shadow:-18px 0 36px rgba(0, 0, 0, 0.24);
+        opacity:0;
+        pointer-events:none;
+        transform:translateX(100%);
+        transition:transform 0.28s ease, opacity 0.28s ease;
+    }
+
+    .desktopHeaderDrawer.menuOpen .desktopMenuPanel{
+        opacity:1;
+        pointer-events:auto;
+        transform:translateX(0);
+    }
+
+    .desktopHeaderDrawer .desktopMenuPanel a{
+        width:100%;
+        font-family:"PPMonumentExtend-Black", "PP Registration Extended", "PP Monument Wide", sans-serif;
+        font-size:calc(clamp(1rem, 1.25vw, 1.32rem) + 3px);
+        font-weight:900;
+        font-synthesis:none;
+        font-synthesis-weight:none;
+        line-height:1.3225;
     }
 }

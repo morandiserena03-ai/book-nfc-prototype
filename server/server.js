@@ -13,7 +13,6 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODEL = "anthropic/claude-haiku-4.5";
-const MATCH_COOLDOWN_MS = 8000;
 const THEMATIC_FIELDS = [
     "topic",
     "plot",
@@ -29,7 +28,6 @@ const AFFINITY_KEYWORD_FIELDS = [
     "moral"
 ];
 const MATCH_TYPE_ORDER = [
-    "temi_uguali",
     "temi_affini",
     "autore_uguale",
     "generi_uguali",
@@ -71,7 +69,7 @@ La selezione della coppia di libri deve seguire una gerarchia di priorita.
 
 Se ricevi avoidBookPairs, evita di selezionare quelle coppie di libri se esiste almeno un'altra coppia possibile con un collegamento significativo. Considera una coppia gia usata anche se i due titoli appaiono in ordine invertito. Usa una coppia gia presente in avoidBookPairs solo se non esistono alternative valide. Se ricevi preferNewBookPair uguale a true, dai massima priorita alla scelta di una coppia di libri non presente in avoidBookPairs.
 
-Una volta individuata la migliore coppia di libri, devi raccogliere e restituire tutti i match presenti tra quei due libri.
+Una volta individuata la migliore coppia di libri, devi restituire soprattutto il tema affine piu significativo tra i due libri.
 
 # CAMPI TEMATICI
 
@@ -89,11 +87,10 @@ Considera come temi i seguenti campi:
 
 Per scegliere la migliore coppia di libri utilizza il seguente ordine:
 
-1. temi uguali
-2. temi affini
-3. autore uguale
-4. generi uguali
-5. stili narrativi uguali
+1. temi affini
+2. autore uguale
+3. generi uguali
+4. stili narrativi uguali
 
 A parita di livello scegli la coppia che genera il collegamento culturale, emotivo o narrativo piu significativo.
 
@@ -101,7 +98,6 @@ A parita di livello scegli la coppia che genera il collegamento culturale, emoti
 
 I match di tipo:
 
-* temi uguali
 * autore uguale
 * generi uguali
 * stili narrativi uguali
@@ -114,7 +110,14 @@ Non considerare sinonimi, concetti simili o parole correlate come corrispondenze
 
 # TEMI AFFINI
 
-Esiste un match per temi affini quando due elementi appartenenti ai campi tematici non sono uguali ma condividono uno stesso campo semantico, emotivo, culturale, filosofico, simbolico o narrativo.
+Esiste un match per temi affini quando due elementi appartenenti ai campi tematici condividono uno stesso campo semantico, emotivo, culturale, filosofico, simbolico o narrativo.
+
+Per i temi affini non importa se le parole di partenza sono identiche o diverse:
+
+* se due libri condividono letteralmente una parola tematica, usala come indizio semantico, non come "tema uguale"
+* non restituire mai un match di tipo "temi_uguali"
+* trasforma sempre la relazione in una nuova parola o breve espressione emergente
+* il cuore del match deve essere il significato comune, non la coincidenza letterale
 
 Quando individui temi affini:
 
@@ -135,6 +138,7 @@ La parola emergente deve provenire da parole chiave scelte nei campi topic, plot
 * preferisci parole singole; se necessario usa espressioni di massimo due parole
 * evita espressioni lunghe quando nello stesso libro esiste una parola chiave piu breve nello stesso campo semantico
 * le parole chiave scelte per entrambi i libri devono appartenere allo stesso campo semantico, emotivo, culturale, filosofico, simbolico o narrativo
+* le parole chiave possono anche essere identiche nei due libri, ma l'elemento in elements deve essere sempre un concetto nuovo e piu ampio
 * usa quelle parole chiave per generare la parola emergente
 * inserisci le parole chiave del libro_1 in keywords_1
 * inserisci le parole chiave del libro_2 in keywords_2
@@ -144,12 +148,6 @@ Se esistono piu possibili temi affini, restituisci il concetto emergente piu sig
 # VALIDAZIONE OBBLIGATORIA DEI MATCH
 
 Prima di restituire l'output, verifica ogni categoria.
-
-Per "temi_uguali":
-
-* ogni elemento deve comparire letteralmente in almeno un campo tematico del libro_1
-* lo stesso elemento deve comparire letteralmente in almeno un campo tematico del libro_2
-* se non compare in entrambi, non inserirlo
 
 Per "generi_uguali":
 
@@ -180,11 +178,10 @@ Per "temi_affini":
 
 Dopo aver selezionato la migliore coppia di libri:
 
-* raccogli tutti i temi uguali presenti
+* individua il miglior tema affine
 * raccogli tutti i generi uguali presenti
 * raccogli tutti gli stili narrativi uguali presenti
 * raccogli l'eventuale autore uguale
-* individua il miglior tema affine
 
 Le tipologie di match possono sommarsi.
 
@@ -202,12 +199,6 @@ Formato:
 "user_2": "",
 "book_2": "",
 "matches": [
-{
-"type": "temi_uguali",
-"elements": [],
-"keywords_1": [],
-"keywords_2": []
-},
 {
 "type": "temi_affini",
 "elements": [],
@@ -241,11 +232,10 @@ Per tutte le categorie diverse da "temi_affini", keywords_1 e keywords_2 devono 
 
 Nell'array matches restituisci le categorie solo se presenti e sempre in questo ordine:
 
-1. temi_uguali
-2. temi_affini
-3. autore_uguale
-4. generi_uguali
-5. stili_narrativi_uguali
+1. temi_affini
+2. autore_uguale
+3. generi_uguali
+4. stili_narrativi_uguali
 
 # REGOLE FINALI
 
@@ -253,8 +243,9 @@ Nell'array matches restituisci le categorie solo se presenti e sempre in questo 
 * Non inventare dati.
 * Non confrontare un utente con se stesso.
 * Puoi selezionare un solo libro per utente.
-* Prima di rispondere, controlla che nessun match letterale sia stato dedotto semanticamente.
-* Se un match non e verificabile tramite confronto letterale esatto, rimuovilo.
+* Non restituire mai "temi_uguali".
+* Prima di rispondere, controlla che autore, generi e stili narrativi non siano stati dedotti semanticamente.
+* Se autore, generi o stili narrativi non sono verificabili tramite confronto letterale esatto, rimuovili.
 * Se una categoria non produce match non inserirla nell'array matches.
 * Se non esiste alcun match restituisci:
 
@@ -267,7 +258,6 @@ Nell'array matches restituisci le categorie solo se presenti e sempre in questo 
 }
 
 L'obiettivo e far emergere connessioni culturali, emotive e narrative significative tra i lettori.`;
-const recentMatches = new Map();
 const matchedBookPairHistory = new Map();
 
 function loadEnvFile() {
@@ -334,12 +324,15 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, "public")));
 // Serve Icons folder at /Icons (project root)
 app.use('/Icons', express.static(path.join(__dirname, '..', 'Icons')));
+// Serve project fonts so other devices do not depend on locally installed fonts
+app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts')));
 
 // DATI
 let users = {};
 
 function normalizeCenterOrder() {
     Object.entries(users)
+        .filter(([, user]) => user.inCenter)
         .sort((a, b) => {
             const orderA = Number.isInteger(a[1].centerOrder) ? a[1].centerOrder : Infinity;
             const orderB = Number.isInteger(b[1].centerOrder) ? b[1].centerOrder : Infinity;
@@ -355,6 +348,7 @@ function getCenterOrderedIds() {
     normalizeCenterOrder();
 
     return Object.entries(users)
+        .filter(([, user]) => user.inCenter)
         .sort((a, b) => a[1].centerOrder - b[1].centerOrder)
         .map(([deviceId]) => deviceId);
 }
@@ -403,35 +397,32 @@ function normalizeBookValue(value) {
     return Array.isArray(value) ? value : [value];
 }
 
-function getBooksForMatch(userA, userB) {
-    const savedBookIds = [
-        ...(Array.isArray(userA.savedBooks) ? userA.savedBooks : []),
-        ...(Array.isArray(userB.savedBooks) ? userB.savedBooks : [])
-    ];
+function getBookForMatchPayload(bookId) {
+    const book = books[bookId];
 
-    return [...new Set(savedBookIds)]
-        .map(bookId => {
-            const book = books[bookId];
+    if (!book) {
+        return null;
+    }
 
-            if (!book) {
-                return null;
-            }
+    return {
+        id: bookId,
+        title: book.title,
+        author: book.author,
+        genres: normalizeBookValue(book.genres),
+        narrativeStyles: normalizeBookValue(book.narrativeStyles),
+        topic: normalizeBookValue(book.topic),
+        plot: normalizeBookValue(book.plot),
+        protagonists: normalizeBookValue(book.protagonists),
+        characters: normalizeBookValue(book.characters),
+        temporalSetting: normalizeBookValue(book.temporalSetting),
+        geographicSetting: normalizeBookValue(book.geographicSetting),
+        moral: normalizeBookValue(book.moral)
+    };
+}
 
-            return {
-                id: bookId,
-                title: book.title,
-                author: book.author,
-                genres: normalizeBookValue(book.genres),
-                narrativeStyles: normalizeBookValue(book.narrativeStyles),
-                topic: normalizeBookValue(book.topic),
-                plot: normalizeBookValue(book.plot),
-                protagonists: normalizeBookValue(book.protagonists),
-                characters: normalizeBookValue(book.characters),
-                temporalSetting: normalizeBookValue(book.temporalSetting),
-                geographicSetting: normalizeBookValue(book.geographicSetting),
-                moral: normalizeBookValue(book.moral)
-            };
-        })
+function getBooksForMatchByIds(bookIds) {
+    return [...new Set(bookIds)]
+        .map(getBookForMatchPayload)
         .filter(Boolean);
 }
 
@@ -450,7 +441,71 @@ function getBookPairHistoryKey(bookTitleA, bookTitleB) {
 }
 
 function getPossibleBookPairCount(userA, userB) {
-    return getUserSavedBookIds(userA).length * getUserSavedBookIds(userB).length;
+    const matchablePairCount = getMatchableBookPairsForUsers(userA, userB).length;
+
+    return matchablePairCount || getUserSavedBookIds(userA).length * getUserSavedBookIds(userB).length;
+}
+
+function getBookPairsForUsers(userA, userB) {
+    return getUserSavedBookIds(userA).flatMap(bookIdA => {
+        return getUserSavedBookIds(userB).map(bookIdB => ({
+            bookIdA,
+            bookIdB,
+            bookA: books[bookIdA],
+            bookB: books[bookIdB]
+        }));
+    });
+}
+
+function hasDisplayableBookMatch(bookA, bookB) {
+    if (!bookA || !bookB) {
+        return false;
+    }
+
+    return getBookAffinityKeywords(bookA).length >= 2 && getBookAffinityKeywords(bookB).length >= 2;
+}
+
+function getBookPairMatchScore(bookA, bookB) {
+    if (!bookA || !bookB) {
+        return 0;
+    }
+
+    const equalGenreCount = getLiteralIntersection(
+        normalizeBookValue(bookA.genres),
+        normalizeBookValue(bookB.genres)
+    ).length;
+    const equalStyleCount = getLiteralIntersection(
+        normalizeBookValue(bookA.narrativeStyles),
+        normalizeBookValue(bookB.narrativeStyles)
+    ).length;
+    const equalAuthorCount = bookA.author && bookA.author === bookB.author ? 1 : 0;
+
+    return (equalAuthorCount * 40)
+        + (equalGenreCount * 20)
+        + (equalStyleCount * 10);
+}
+
+function getMatchableBookPairsForUsers(userA, userB) {
+    return getBookPairsForUsers(userA, userB)
+        .filter(pair => {
+            return hasDisplayableBookMatch(pair.bookA, pair.bookB);
+        })
+        .sort((pairA, pairB) => {
+            return getBookPairMatchScore(pairB.bookA, pairB.bookB)
+                - getBookPairMatchScore(pairA.bookA, pairA.bookB);
+        });
+}
+
+function getUnusedBookPairs(userA, userB, avoidBookPairs) {
+    const avoidedPairKeys = new Set(
+        avoidBookPairs.map(pair => getBookPairHistoryKey(pair.book_1, pair.book_2))
+    );
+    const pairs = getMatchableBookPairsForUsers(userA, userB);
+    const unusedPairs = pairs.filter(pair => {
+        return !avoidedPairKeys.has(getBookPairHistoryKey(pair.bookA.title, pair.bookB.title));
+    });
+
+    return unusedPairs.length ? unusedPairs : pairs;
 }
 
 function getAvoidBookPairsForUsers(deviceId, targetDeviceId, userA, userB) {
@@ -475,15 +530,19 @@ function getAvoidBookPairsForUsers(deviceId, targetDeviceId, userA, userB) {
         }));
 }
 
-function recordMatchedBookPair(deviceId, targetDeviceId, match) {
-    if (!match || !match.book_1 || !match.book_2) {
+function recordSelectedBookPair(deviceId, targetDeviceId, bookPair) {
+    if (!bookPair || !bookPair.bookA || !bookPair.bookB) {
         return;
     }
 
+    recordBookPairTitles(deviceId, targetDeviceId, bookPair.bookA.title, bookPair.bookB.title);
+}
+
+function recordBookPairTitles(deviceId, targetDeviceId, bookTitleA, bookTitleB) {
     const historyKey = getUserPairHistoryKey(deviceId, targetDeviceId);
     const history = matchedBookPairHistory.get(historyKey) || new Set();
 
-    history.add(getBookPairHistoryKey(match.book_1, match.book_2));
+    history.add(getBookPairHistoryKey(bookTitleA, bookTitleB));
     matchedBookPairHistory.set(historyKey, history);
 }
 
@@ -497,6 +556,15 @@ function isAvoidedBookPair(match, avoidBookPairs) {
     return avoidBookPairs.some(pair => {
         return getBookPairHistoryKey(pair.book_1, pair.book_2) === matchPairKey;
     });
+}
+
+function isExpectedBookPair(match, bookPair) {
+    if (!match || !match.book_1 || !match.book_2 || !bookPair) {
+        return false;
+    }
+
+    return getBookPairHistoryKey(match.book_1, match.book_2)
+        === getBookPairHistoryKey(bookPair.bookA.title, bookPair.bookB.title);
 }
 
 function findBookByMatchValue(value) {
@@ -591,7 +659,6 @@ function sanitizeBookMatch(match) {
     }
 
     const matches = [];
-    const equalThemes = getLiteralIntersection(getBookThemes(bookA), getBookThemes(bookB));
     const equalGenres = getLiteralIntersection(
         normalizeBookValue(bookA.genres),
         normalizeBookValue(bookB.genres)
@@ -614,15 +681,6 @@ function sanitizeBookMatch(match) {
         relatedThemeMatch ? relatedThemeMatch.keywords_2 : [],
         getBookAffinityKeywords(bookB)
     );
-
-    if (equalThemes.length) {
-        matches.push({
-            type: "temi_uguali",
-            elements: equalThemes,
-            keywords_1: [],
-            keywords_2: []
-        });
-    }
 
     if (validRelatedThemes.length && keywordsA.length >= 2 && keywordsB.length >= 2) {
         matches.push({
@@ -671,19 +729,6 @@ function sanitizeBookMatch(match) {
     };
 }
 
-function shouldSkipRecentMatch(deviceId, targetDeviceId) {
-    const matchKey = `${deviceId}:${targetDeviceId}`;
-    const lastMatchAt = recentMatches.get(matchKey) || 0;
-    const now = Date.now();
-
-    if (now - lastMatchAt < MATCH_COOLDOWN_MS) {
-        return true;
-    }
-
-    recentMatches.set(matchKey, now);
-    return false;
-}
-
 async function runBookMatch(deviceId, targetDeviceId) {
     if (!process.env.OPENROUTER_API_KEY) {
         throw new Error("OPENROUTER_API_KEY mancante");
@@ -697,36 +742,40 @@ async function runBookMatch(deviceId, targetDeviceId) {
     }
 
     const avoidBookPairs = getAvoidBookPairsForUsers(deviceId, targetDeviceId, userA, userB);
-    const possiblePairCount = getPossibleBookPairCount(userA, userB);
-    const basePayload = {
-        user_1: {
-            nickname: userA.nickname,
-            savedBooks: userA.savedBooks || []
-        },
-        user_2: {
-            nickname: userB.nickname,
-            savedBooks: userB.savedBooks || []
-        },
-        catalog: getBooksForMatch(userA, userB),
-        avoidBookPairs
-    };
-    const attempts = avoidBookPairs.length && possiblePairCount > avoidBookPairs.length ? 2 : 1;
-    let match = null;
+    const candidateBookPairs = getUnusedBookPairs(userA, userB, avoidBookPairs);
 
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-        match = await requestOpenRouterBookMatch({
-            ...basePayload,
-            preferNewBookPair: attempt > 0
+    if (!candidateBookPairs.length) {
+        return null;
+    }
+
+    for (const bookPair of candidateBookPairs) {
+        recordSelectedBookPair(deviceId, targetDeviceId, bookPair);
+
+        const match = await requestOpenRouterBookMatch({
+            user_1: {
+                nickname: userA.nickname,
+                savedBooks: [bookPair.bookIdA]
+            },
+            user_2: {
+                nickname: userB.nickname,
+                savedBooks: [bookPair.bookIdB]
+            },
+            catalog: getBooksForMatchByIds([bookPair.bookIdA, bookPair.bookIdB]),
+            avoidBookPairs,
+            preferNewBookPair: true
         });
 
-        if (!isAvoidedBookPair(match, avoidBookPairs)) {
-            break;
+        if (
+            isExpectedBookPair(match, bookPair)
+            && !isAvoidedBookPair(match, avoidBookPairs)
+            && Array.isArray(match.matches)
+            && match.matches.length
+        ) {
+            return match;
         }
     }
 
-    recordMatchedBookPair(deviceId, targetDeviceId, match);
-
-    return match;
+    return null;
 }
 
 async function requestOpenRouterBookMatch(payload) {
@@ -770,7 +819,6 @@ async function requestOpenRouterBookMatch(payload) {
                                         type: {
                                             type: "string",
                                             enum: [
-                                                "temi_uguali",
                                                 "temi_affini",
                                                 "autore_uguale",
                                                 "generi_uguali",
@@ -922,6 +970,12 @@ app.post("/center/approach", (req, res) => {
         });
     }
 
+    if (!users[deviceId].inCenter || !users[targetDeviceId].inCenter) {
+        return res.status(400).json({
+            error: "Users must be in center"
+        });
+    }
+
     const orderedIds = getCenterOrderedIds();
     const currentIndex = orderedIds.indexOf(deviceId);
     const targetIndex = orderedIds.indexOf(targetDeviceId);
@@ -940,38 +994,59 @@ app.post("/center/approach", (req, res) => {
 
     io.emit("update");
 
-    if (!shouldSkipRecentMatch(deviceId, targetDeviceId)) {
-        io.emit("bookMatchStarted", {
-            deviceId,
-            targetDeviceId,
-            user_1: users[deviceId].nickname,
-            user_2: users[targetDeviceId].nickname
-        });
+    io.emit("bookMatchStarted", {
+        deviceId,
+        targetDeviceId,
+        user_1: users[deviceId].nickname,
+        user_2: users[targetDeviceId].nickname
+    });
 
-        runBookMatch(deviceId, targetDeviceId)
-            .then(match => {
-                if (!match) {
-                    return;
-                }
-
-                io.emit("bookMatch", {
-                    deviceId,
-                    targetDeviceId,
-                    match
-                });
-            })
-            .catch(error => {
-                console.error("Book match failed:", error);
+    runBookMatch(deviceId, targetDeviceId)
+        .then(match => {
+            if (!match) {
                 io.emit("bookMatchError", {
                     deviceId,
                     targetDeviceId
                 });
+                return;
+            }
+
+            io.emit("bookMatch", {
+                deviceId,
+                targetDeviceId,
+                match
             });
-    }
+        })
+        .catch(error => {
+            console.error("Book match failed:", error);
+            io.emit("bookMatchError", {
+                deviceId,
+                targetDeviceId
+            });
+        });
 
     res.json({
         success: true
     });
+});
+
+app.post("/center/enter", (req, res) => {
+
+    const { deviceId } = req.body;
+
+    if (!deviceId || !users[deviceId]) {
+        return res.status(400).json({
+            error: "User not found"
+        });
+    }
+
+    if (!users[deviceId].inCenter) {
+        users[deviceId].centerOrder = Object.values(users).filter(user => user.inCenter).length;
+        users[deviceId].inCenter = true;
+        io.emit("update");
+    }
+
+    res.json(users[deviceId]);
 });
 
 // REGISTER
@@ -991,6 +1066,7 @@ app.post("/register", (req, res) => {
         nickname,
         collection: [],
         savedBooks: [],
+        inCenter: false,
         approachTargetId: null,
         centerOrder: Object.keys(users).length
     };

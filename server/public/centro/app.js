@@ -35,6 +35,12 @@ const KEYWORD_BURST_CHANCE = 0.35;
 const KEYWORD_BURST_DELAY = 140;
 const BOOK_KEYWORD_RETRY_DELAY = KEYWORD_ANIMATION_VISIBLE_MS;
 const KEYWORD_LOTTIE_PATH = "/animations/aura-keyword-text.json";
+const KEYWORD_TEXT_VISIBLE_FRAME = 63;
+const KEYWORD_STALL_FALLBACK_MS = 3200;
+const KEYWORD_CLOSE_MS = 320;
+const KEYWORD_DISAPPEAR_MS = 180;
+const MATCH_KEYWORD_HOLD_FRAME = 142;
+const MATCH_KEYWORD_COLLISION_GAP = 6;
 const AURA_KEYWORD_COLORS = ["#0000FF", "#9797FD"];
 const SHAPE_ALPHA_THRESHOLD = 8;
 const SHAPE_PROTECTION_MARGIN = 3;
@@ -64,6 +70,7 @@ let booksById = {};
 let latestUsers = {};
 let auraTimersStarted = false;
 let bookMatchHideTimer = null;
+let bookMatchCloseTimer = null;
 let currentBookMatchEvent = null;
 let keywordLottieDataPromise = null;
 const shapeMasks = new Map();
@@ -92,9 +99,10 @@ async function loadBooks() {
 async function loadUsers() {
     const response = await fetch("/users");
     const users = await response.json();
+    const centerUsers = getCenterUsers(users);
 
-    latestUsers = users;
-    renderUsers(users);
+    latestUsers = centerUsers;
+    renderUsers(centerUsers);
 }
 
 function renderUsers(users) {
@@ -162,6 +170,12 @@ function renderUsers(users) {
 
     startAuraTimer();
     updateVisibleBookMatchPosition();
+}
+
+function getCenterUsers(users) {
+    return Object.fromEntries(
+        Object.entries(users).filter(([, user]) => user.inCenter)
+    );
 }
 
 function updateShapeImage(figure, shapeSrc, user) {
@@ -358,9 +372,7 @@ function renderAuraType(figure, user, type, options = {}) {
     const items = createAuraItems(user);
     const visibleItems = chooseVisibleAuraItems(items, type, aura, options);
 
-    aura.querySelectorAll(`[data-aura-type="${type}"]`).forEach(element => {
-        element.remove();
-    });
+    aura.querySelectorAll(`[data-aura-type="${type}"]`).forEach(removeAuraElement);
 
     if (!visibleItems.length) {
         if (isBookSlot(type)) {
@@ -419,7 +431,7 @@ function pruneKeywordsWithoutVisibleBook(aura) {
 
     aura.querySelectorAll(".auraKeyword").forEach(keyword => {
         if (!visibleBookIds.has(keyword.dataset.bookId)) {
-            keyword.remove();
+            removeAuraElement(keyword);
         }
     });
 }
@@ -502,7 +514,7 @@ function showBookMatchLoading(event) {
 
     currentBookMatchEvent = null;
     clearBookMatchTimer();
-    panel.replaceChildren();
+    clearBookMatchPanel(panel);
     panel.hidden = true;
 }
 
@@ -516,14 +528,19 @@ function showBookMatchResult(event) {
 
     currentBookMatchEvent = event;
     clearBookMatchTimer();
-    panel.replaceChildren();
+    clearBookMatchPanel(panel);
     panel.hidden = false;
 
-    panel.appendChild(createBookMatchScene(match, getBookMatchSceneAnchor(event)));
+    const scene = createBookMatchScene(match, getBookMatchSceneAnchor(event));
+
+    panel.appendChild(scene);
+    scheduleBookMatchKeywordLayout(scene);
 
     bookMatchHideTimer = setTimeout(() => {
-        panel.hidden = true;
-        currentBookMatchEvent = null;
+        closeBookMatchPanel(panel, () => {
+            panel.hidden = true;
+            currentBookMatchEvent = null;
+        });
     }, 18000);
 }
 
@@ -536,7 +553,7 @@ function showBookMatchError() {
 
     currentBookMatchEvent = null;
     clearBookMatchTimer();
-    panel.replaceChildren();
+    clearBookMatchPanel(panel);
     panel.hidden = false;
 
     const status = document.createElement("p");
@@ -550,6 +567,7 @@ function showBookMatchError() {
     panel.append(status, title);
 
     bookMatchHideTimer = setTimeout(() => {
+        clearBookMatchPanel(panel);
         panel.hidden = true;
     }, 8000);
 }
@@ -559,6 +577,36 @@ function clearBookMatchTimer() {
         clearTimeout(bookMatchHideTimer);
         bookMatchHideTimer = null;
     }
+}
+
+function clearBookMatchPanel(panel) {
+    if (bookMatchCloseTimer) {
+        clearTimeout(bookMatchCloseTimer);
+        bookMatchCloseTimer = null;
+    }
+
+    panel.querySelectorAll(".auraKeywordAnimation").forEach(disposeKeywordLottie);
+    panel.replaceChildren();
+}
+
+function closeBookMatchPanel(panel, onComplete) {
+    const pills = [...panel.querySelectorAll(".bookMatchPill")];
+
+    if (!pills.length) {
+        clearBookMatchPanel(panel);
+        onComplete?.();
+        return;
+    }
+
+    pills.forEach(pill => {
+        closeKeywordElement(pill);
+    });
+
+    bookMatchCloseTimer = setTimeout(() => {
+        bookMatchCloseTimer = null;
+        clearBookMatchPanel(panel);
+        onComplete?.();
+    }, KEYWORD_CLOSE_MS + KEYWORD_DISAPPEAR_MS);
 }
 
 function getBookMatchSceneAnchor(event) {
@@ -599,6 +647,270 @@ function updateVisibleBookMatchPosition() {
     }
 
     scene.style.setProperty("--book-match-anchor", `${getBookMatchSceneAnchor(currentBookMatchEvent)}%`);
+    scheduleBookMatchKeywordLayout(scene);
+}
+
+function scheduleBookMatchKeywordLayout(scene) {
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            arrangeBookMatchKeywords(scene);
+        });
+    });
+}
+
+function arrangeBookMatchKeywords(scene) {
+    const layer = scene.querySelector(".bookMatchKeywordLayer");
+
+    if (!layer) {
+        return;
+    }
+
+    const layerRect = layer.getBoundingClientRect();
+    const leftPills = [...layer.querySelectorAll('.bookMatchKeywordCloud-left .bookMatchPill')];
+    const rightPills = [...layer.querySelectorAll('.bookMatchKeywordCloud-right .bookMatchPill')];
+    const generatedPill = layer.querySelector(".bookMatchGeneratedKeyword .bookMatchPill");
+    const baseCenterY = layerRect.height * 0.43;
+    const leftCenters = placeBookMatchKeywordColumn(leftPills, layerRect, {
+        centerX: layerRect.width * 0.22,
+        centerY: baseCenterY
+    });
+    const rightCenters = placeBookMatchKeywordColumn(rightPills, layerRect, {
+        centerX: layerRect.width * 0.78,
+        centerY: baseCenterY
+    });
+    const generatorCenters = [...leftCenters, ...rightCenters];
+    const generatedCenterY = generatorCenters.length
+        ? generatorCenters.reduce((sum, center) => sum + center, 0) / generatorCenters.length
+        : baseCenterY;
+
+    if (generatedPill) {
+        placeBookMatchGeneratedKeyword(generatedPill, layerRect, generatedCenterY);
+    }
+}
+
+function placeBookMatchKeywordColumn(pills, layerRect, anchor) {
+    if (!pills.length) {
+        return [];
+    }
+
+    const gap = clamp(layerRect.height * 0.07, 8, 16);
+    const rects = pills.map(pill => pill.getBoundingClientRect());
+    const totalHeight = rects.reduce((sum, rect) => sum + rect.height, 0) + (gap * (rects.length - 1));
+    let top = clamp(anchor.centerY - (totalHeight / 2), 0, Math.max(0, layerRect.height - totalHeight));
+    const centers = [];
+
+    pills.forEach((pill, index) => {
+        const rect = rects[index];
+        const left = clamp(anchor.centerX - (rect.width / 2), 0, Math.max(0, layerRect.width - rect.width));
+
+        pill.style.left = `${left}px`;
+        pill.style.top = `${top}px`;
+        centers.push(top + (rect.height / 2));
+        top += rect.height + gap;
+    });
+
+    return centers;
+}
+
+function placeBookMatchGeneratedKeyword(pill, layerRect, centerY) {
+    const rect = pill.getBoundingClientRect();
+    const left = clamp((layerRect.width / 2) - (rect.width / 2), 0, Math.max(0, layerRect.width - rect.width));
+    const top = clamp(centerY - (rect.height / 2), 0, Math.max(0, layerRect.height - rect.height));
+
+    pill.style.left = `${left}px`;
+    pill.style.top = `${top}px`;
+    pill.style.setProperty("--match-pill-rotation", "0deg");
+}
+
+function resolveBookMatchKeywordPlacement(pill, anchor, rect, layerRect, placedRects) {
+    const jitter = getBookMatchKeywordJitter(pill);
+    const jitterX = (jitter.x / 100) * layerRect.width;
+    const jitterY = (jitter.y / 100) * layerRect.height;
+    const baseLeft = ((anchor.x / 100) * layerRect.width) - (rect.width / 2) + jitterX;
+    const baseTop = ((anchor.y / 100) * layerRect.height) - (rect.height / 2) + jitterY + (anchor.offsetY || 0);
+    const bounds = getBookMatchKeywordBounds(pill, layerRect, rect);
+    const candidates = getBookMatchKeywordCandidates(baseLeft, baseTop, rect, layerRect, bounds);
+    const openCandidate = candidates.find(candidate => {
+        return !placedRects.some(placed => rectsOverlap(candidate, placed, MATCH_KEYWORD_COLLISION_GAP));
+    });
+
+    if (openCandidate) {
+        return openCandidate;
+    }
+
+    const relaxedBounds = getBookMatchKeywordBounds(pill, layerRect, rect, { relaxed: true });
+    const relaxedCandidates = getBookMatchKeywordCandidates(baseLeft, baseTop, rect, layerRect, relaxedBounds);
+    const relaxedOpenCandidate = relaxedCandidates.find(candidate => {
+        return !placedRects.some(placed => rectsOverlap(candidate, placed, MATCH_KEYWORD_COLLISION_GAP));
+    });
+
+    if (relaxedOpenCandidate) {
+        return relaxedOpenCandidate;
+    }
+
+    const fullBounds = getBookMatchKeywordBounds(pill, layerRect, rect, { full: true });
+    const fullCandidates = getBookMatchKeywordCandidates(baseLeft, baseTop, rect, layerRect, fullBounds);
+    const fullOpenCandidate = fullCandidates.find(candidate => {
+        return !placedRects.some(placed => rectsOverlap(candidate, placed, MATCH_KEYWORD_COLLISION_GAP));
+    });
+
+    if (fullOpenCandidate) {
+        return fullOpenCandidate;
+    }
+
+    return getNextFreeBookMatchKeywordRow(baseLeft, rect, fullBounds, placedRects);
+}
+
+function getBookMatchKeywordBounds(pill, layerRect, rect, options = {}) {
+    const centerGutter = MATCH_KEYWORD_COLLISION_GAP * 2;
+    const maxLeft = Math.max(0, layerRect.width - rect.width);
+    const maxTop = Math.max(0, layerRect.height - rect.height);
+
+    if (options.full) {
+        return {
+            minLeft: 0,
+            maxLeft,
+            minTop: 0,
+            maxTop
+        };
+    }
+
+    if (pill.dataset.matchKeywordSide === "left") {
+        return {
+            minLeft: 0,
+            maxLeft: Math.max(0, (layerRect.width * 0.47) - rect.width - centerGutter),
+            minTop: 0,
+            maxTop: options.relaxed ? maxTop : Math.max(0, Math.min(maxTop, layerRect.height * 0.58))
+        };
+    }
+
+    if (pill.dataset.matchKeywordSide === "right") {
+        return {
+            minLeft: Math.min(maxLeft, (layerRect.width * 0.53) + centerGutter),
+            maxLeft,
+            minTop: 0,
+            maxTop: options.relaxed ? maxTop : Math.max(0, Math.min(maxTop, layerRect.height * 0.58))
+        };
+    }
+
+    return {
+        minLeft: 0,
+        maxLeft,
+        minTop: 0,
+        maxTop
+    };
+}
+
+function getBookMatchKeywordCandidates(baseLeft, baseTop, rect, layerRect, bounds) {
+    const candidates = [];
+    const stepX = Math.max(20, rect.width * 0.24);
+    const stepY = Math.max(18, rect.height + MATCH_KEYWORD_COLLISION_GAP);
+
+    for (let y = bounds.minTop; y <= bounds.maxTop; y += stepY) {
+        for (let x = bounds.minLeft; x <= bounds.maxLeft; x += stepX) {
+            candidates.push(clampBookMatchKeywordRect({
+                left: x,
+                top: y,
+                width: rect.width,
+                height: rect.height
+            }, bounds));
+        }
+    }
+
+    candidates.push(clampBookMatchKeywordRect({
+        left: baseLeft,
+        top: baseTop,
+        width: rect.width,
+        height: rect.height
+    }, bounds));
+
+    [
+        { left: bounds.minLeft, top: bounds.minTop },
+        { left: bounds.maxLeft, top: bounds.minTop },
+        { left: bounds.minLeft, top: bounds.maxTop },
+        { left: bounds.maxLeft, top: bounds.maxTop }
+    ].forEach(point => {
+        candidates.push(clampBookMatchKeywordRect({
+            left: point.left,
+            top: point.top,
+            width: rect.width,
+            height: rect.height
+        }, bounds));
+    });
+
+    return candidates
+        .filter((candidate, index, list) => {
+            return index === list.findIndex(item => {
+                return Math.abs(item.left - candidate.left) < 1
+                    && Math.abs(item.top - candidate.top) < 1;
+            });
+        })
+        .sort((a, b) => {
+            const distanceA = Math.hypot(a.left - baseLeft, a.top - baseTop);
+            const distanceB = Math.hypot(b.left - baseLeft, b.top - baseTop);
+
+            return distanceA - distanceB;
+        });
+}
+
+function clampBookMatchKeywordRect(rect, bounds) {
+    const left = clamp(rect.left, bounds.minLeft, bounds.maxLeft);
+    const top = clamp(rect.top, bounds.minTop, bounds.maxTop);
+
+    return {
+        left,
+        top,
+        width: rect.width,
+        height: rect.height,
+        right: left + rect.width,
+        bottom: top + rect.height
+    };
+}
+
+function getNextFreeBookMatchKeywordRow(baseLeft, rect, bounds, placedRects) {
+    const left = clamp(baseLeft, bounds.minLeft, bounds.maxLeft);
+    const lowestBottom = placedRects.reduce((bottom, placed) => {
+        return Math.max(bottom, placed.bottom);
+    }, bounds.minTop);
+    let top = lowestBottom + MATCH_KEYWORD_COLLISION_GAP;
+
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+        const candidate = {
+            left,
+            top,
+            width: rect.width,
+            height: rect.height,
+            right: left + rect.width,
+            bottom: top + rect.height
+        };
+
+        if (!placedRects.some(placed => rectsOverlap(candidate, placed, MATCH_KEYWORD_COLLISION_GAP))) {
+            return candidate;
+        }
+
+        top += rect.height + MATCH_KEYWORD_COLLISION_GAP;
+    }
+
+    return {
+        left,
+        top,
+        width: rect.width,
+        height: rect.height,
+        right: left + rect.width,
+        bottom: top + rect.height
+    };
+}
+
+function getBookMatchKeywordJitter(element) {
+    if (!element.dataset.matchKeywordJitterX) {
+        element.dataset.matchKeywordJitterX = String(randomBetween(-4, 4));
+        element.dataset.matchKeywordJitterY = String(randomBetween(-5, 5));
+    }
+
+    return {
+        x: Number(element.dataset.matchKeywordJitterX) || 0,
+        y: Number(element.dataset.matchKeywordJitterY) || 0
+    };
 }
 
 function getBookFromMatchValue(value) {
@@ -688,10 +1000,14 @@ function createMatchKeywordCloud(keywords, side) {
     cloud.classList.add("bookMatchKeywordCloud", `bookMatchKeywordCloud-${side}`);
 
     (Array.isArray(keywords) ? keywords : []).slice(0, 3).forEach((keyword, index) => {
-        cloud.appendChild(createMatchPill(keyword, {
+        const pill = createMatchPill(keyword, {
             color: index % 2 === 0 ? "blue" : "lavender",
             size: index === 0 ? "large" : "medium"
-        }));
+        });
+
+        pill.dataset.matchKeywordSide = side;
+        pill.dataset.matchKeywordIndex = String(index);
+        cloud.appendChild(pill);
     });
 
     return cloud;
@@ -706,10 +1022,12 @@ function createMatchGeneratedKeyword(keyword) {
         return wrapper;
     }
 
-    wrapper.appendChild(createMatchPill(keyword, {
-        color: "white",
-        size: "hero"
-    }));
+    const pill = createMatchPill(keyword, {
+        color: "white"
+    });
+
+    pill.dataset.matchKeywordRole = "generated";
+    wrapper.appendChild(pill);
 
     return wrapper;
 }
@@ -757,6 +1075,16 @@ function createMatchSharedCluster(sharedGenre, sharedStyles) {
         const leftSticker = createMatchSticker(sharedGenre, "bookMatchSharedSticker bookMatchSharedSticker-left", -12);
         const rightSticker = createMatchSticker(sharedGenre, "bookMatchSharedSticker bookMatchSharedSticker-right", 12);
 
+        attachAuraMotion(leftSticker, {
+            type: "matchSharedSticker",
+            genre: sharedGenre,
+            stableIndex: "left"
+        });
+        attachAuraMotion(rightSticker, {
+            type: "matchSharedSticker",
+            genre: sharedGenre,
+            stableIndex: "right"
+        });
         stickerStack.append(
             leftSticker,
             rightSticker
@@ -796,13 +1124,59 @@ function createMatchSticker(genre, className, rotation) {
 
 function createMatchPill(text, options = {}) {
     const tag = document.createElement("span");
+    const animation = document.createElement("span");
+    const content = document.createElement("span");
+    const dots = document.createElement("span");
+    const fallback = document.createElement("span");
+    const color = getMatchPillColor(options.color);
+    const textColor = getMatchPillTextColor(options.color);
+
     tag.classList.add("bookMatchPill", `bookMatchPill-${options.color || "blue"}`);
     tag.classList.add(`bookMatchPill-${options.size || "medium"}`);
-    tag.textContent = text;
+    tag.classList.add("bookMatchPillOverlayText");
+    tag.classList.toggle("bookMatchPill-long", String(text).length > 11);
+    tag.classList.toggle("bookMatchPill-veryLong", String(text).length > 16);
+    tag.dataset.holdKeywordLottie = "true";
     tag.title = text;
+    tag.style.setProperty("--aura-keyword-color", color);
     tag.style.setProperty("--match-pill-rotation", `${randomLightBoxRotation()}deg`);
+    attachAuraMotion(tag, {
+        type: "matchPill",
+        text,
+        stableIndex: options.size || "medium"
+    });
+    animation.classList.add("auraKeywordAnimation");
+    animation.setAttribute("aria-hidden", "true");
+    content.classList.add("auraKeywordContent");
+    dots.classList.add("auraKeywordDots");
+    dots.textContent = "...";
+    fallback.classList.add("auraKeywordFallback");
+    fallback.textContent = text;
+    content.append(dots, fallback);
+    tag.append(animation, content);
+    renderKeywordLottie(animation, text, color, textColor, { hideLottieText: true });
 
     return tag;
+}
+
+function getMatchPillColor(colorName) {
+    if (colorName === "white") {
+        return "#FFFFFF";
+    }
+
+    if (colorName === "lavender") {
+        return "#9797FD";
+    }
+
+    return "#0000FF";
+}
+
+function getMatchPillTextColor(colorName) {
+    if (colorName === "white") {
+        return "#0000FF";
+    }
+
+    return "#FFFFFF";
 }
 
 function createBookElement(item) {
@@ -853,36 +1227,48 @@ function createLooseStickerElement(item) {
 function createKeywordElement(item) {
     const tag = document.createElement("span");
     const animation = document.createElement("span");
+    const content = document.createElement("span");
+    const dots = document.createElement("span");
     const fallback = document.createElement("span");
-    const metrics = getKeywordTextMetrics(item.text);
     const color = AURA_KEYWORD_COLORS[randomInt(0, AURA_KEYWORD_COLORS.length - 1)];
 
     tag.classList.add("auraKeyword");
     tag.classList.add("auraKeywordAnimated");
     tag.dataset.bookId = item.bookId;
+    tag.dataset.keywordText = item.text;
     tag.dataset.createdAt = String(Date.now());
     tag.title = `${item.label}: ${item.text}`;
     tag.style.setProperty("--aura-keyword-color", color);
-    tag.style.setProperty("--aura-keyword-width-ratio", String(metrics.visualRatio));
-    tag.style.setProperty("--aura-keyword-aspect", `${Math.ceil(576 + metrics.extraWidth)} / 324`);
     animation.classList.add("auraKeywordAnimation");
     animation.setAttribute("aria-hidden", "true");
+    content.classList.add("auraKeywordContent");
+    dots.classList.add("auraKeywordDots");
+    dots.textContent = "...";
     fallback.classList.add("auraKeywordFallback");
     fallback.textContent = item.text;
-    tag.append(animation, fallback);
+    content.append(dots, fallback);
+    tag.append(animation, content);
     renderKeywordLottie(animation, item.text, color);
 
     return tag;
 }
 
-async function renderKeywordLottie(container, text, color) {
-    const keyword = container.closest(".auraKeyword");
+async function renderKeywordLottie(container, text, color, textColor = "#FFFFFF", options = {}) {
+    const keyword = container.closest(".auraKeyword, .bookMatchPill");
+    const shouldHoldOpen = keyword?.dataset.holdKeywordLottie === "true";
+    let hasLoadedSvg = false;
+    let hasReachedTextFrame = false;
+    let hasHeldOpen = false;
 
-    setTimeout(() => {
-        if (container.isConnected && !keyword?.classList.contains("auraKeywordLottieReady")) {
-            keyword?.classList.add("auraKeywordFallbackVisible");
-        }
-    }, 1200);
+    disposeKeywordLottie(container);
+
+    if (!shouldHoldOpen) {
+        setTimeout(() => {
+            if (container.isConnected && !hasLoadedSvg) {
+                keyword?.classList.add("auraKeywordFallbackVisible");
+            }
+        }, 1200);
+    }
 
     if (!window.lottie) {
         keyword?.classList.add("auraKeywordFallbackVisible");
@@ -890,7 +1276,7 @@ async function renderKeywordLottie(container, text, color) {
     }
 
     try {
-        const animationData = await createKeywordLottieData(text, color);
+        const animationData = await createKeywordLottieData(text, color, textColor, options);
 
         if (!container.isConnected) {
             return;
@@ -907,121 +1293,108 @@ async function renderKeywordLottie(container, text, color) {
                 progressiveLoad: false
             }
         });
+        container.keywordLottieAnimation = animation;
 
         animation.addEventListener("DOMLoaded", () => {
             const svg = container.querySelector("svg");
 
             if (svg) {
-                keyword.dataset.createdAt = String(Date.now());
-                keyword?.classList.add("auraKeywordLottieReady");
-                keyword?.classList.remove("auraKeywordFallbackVisible");
+                hasLoadedSvg = true;
+                keyword?.dataset && (keyword.dataset.createdAt = String(Date.now()));
+                const scene = keyword?.closest(".bookMatchScene");
+
+                if (scene) {
+                    scheduleBookMatchKeywordLayout(scene);
+                }
             } else {
                 keyword?.classList.add("auraKeywordFallbackVisible");
             }
         });
+
+        animation.addEventListener("enterFrame", event => {
+            if (event.currentTime >= KEYWORD_TEXT_VISIBLE_FRAME && !hasReachedTextFrame) {
+                hasReachedTextFrame = true;
+                keyword?.classList.add("auraKeywordLottieReady");
+                keyword?.classList.remove("auraKeywordFallbackVisible");
+                const scene = keyword?.closest(".bookMatchScene");
+
+                if (scene) {
+                    scheduleBookMatchKeywordLayout(scene);
+                }
+            }
+        });
+
+        setTimeout(() => {
+            if (container.isConnected && !hasReachedTextFrame) {
+                keyword?.classList.add("auraKeywordFallbackVisible");
+            }
+        }, KEYWORD_STALL_FALLBACK_MS);
+
+        if (shouldHoldOpen) {
+            animation.addEventListener("enterFrame", event => {
+                if (event.currentTime >= MATCH_KEYWORD_HOLD_FRAME && !hasHeldOpen) {
+                    hasHeldOpen = true;
+                    animation.goToAndStop(MATCH_KEYWORD_HOLD_FRAME, true);
+                }
+            });
+
+            animation.addEventListener("complete", () => {
+                animation.goToAndStop(MATCH_KEYWORD_HOLD_FRAME, true);
+            });
+        } else {
+            animation.addEventListener("complete", () => {
+                if (keyword?.classList.contains("auraKeyword") && container.isConnected) {
+                    closeKeywordElement(keyword, () => removeAuraElement(keyword));
+                }
+            });
+        }
     } catch (error) {
         keyword?.classList.add("auraKeywordFallbackVisible");
     }
 }
 
-async function createKeywordLottieData(text, color) {
+function disposeKeywordLottie(container) {
+    const animation = container.keywordLottieAnimation;
+
+    if (animation && typeof animation.destroy === "function") {
+        animation.destroy();
+    }
+
+    delete container.keywordLottieAnimation;
+}
+
+async function createKeywordLottieData(text, color, textColor = "#FFFFFF", options = {}) {
     const source = await loadKeywordLottieData();
     const data = JSON.parse(JSON.stringify(source));
-    const metrics = getKeywordTextMetrics(text);
 
     data.layers
-        .filter(layer => layer.ty === 5 && layer.nm === "Drammatico")
+        .filter(layer => layer.ty === 5)
         .forEach(layer => {
             layer.t?.d?.k?.forEach(keyframe => {
                 if (keyframe.s) {
-                    keyframe.s.t = text;
+                    keyframe.s.t = layer.nm === "... 2" ? "..." : "";
+                    keyframe.s.fc = hexToLottieColor(textColor);
                 }
             });
         });
 
-    resizeKeywordLottieBubble(data, metrics, color);
+    data.layers = data.layers.filter(layer => layer.ty !== 4);
+    straightenKeywordLottieLayers(data);
     delete data.chars;
 
     return data;
 }
 
-function getKeywordTextMetrics(text) {
-    const baseText = "Drammatico";
-    const baseWidth = estimateKeywordTextWidth(baseText);
-    const textWidth = estimateKeywordTextWidth(text);
-    const ratio = clamp(textWidth / baseWidth, 0.58, 1.8);
-    const baseOpenWidth = 465.672;
-    const targetOpenWidth = clamp(baseOpenWidth * ratio, 270, 780);
-    const extraWidth = Math.max(0, targetOpenWidth - baseOpenWidth);
-
-    return {
-        ratio,
-        visualRatio: (576 + extraWidth) / 576,
-        targetOpenWidth,
-        extraWidth
-    };
-}
-
-function estimateKeywordTextWidth(text) {
-    return String(text || "").split("").reduce((width, character) => {
-        if (character === " ") {
-            return width + 24;
+function straightenKeywordLottieLayers(data) {
+    data.layers.forEach(layer => {
+        if (layer.ks?.r && typeof layer.ks.r.k === "number") {
+            layer.ks.r.k = 0;
         }
 
-        if ("ilI.,'".includes(character)) {
-            return width + 24;
+        if (layer.ks?.rz && typeof layer.ks.rz.k === "number") {
+            layer.ks.rz.k = 0;
         }
-
-        if ("mwMW".includes(character)) {
-            return width + 74;
-        }
-
-        if (character === character.toUpperCase() && character !== character.toLowerCase()) {
-            return width + 58;
-        }
-
-        return width + 46;
-    }, 0);
-}
-
-function resizeKeywordLottieBubble(data, metrics, color) {
-    const bubbleLayer = data.layers.find(layer => layer.ty === 4 && layer.nm === "bubble alienista 2");
-    const shape = bubbleLayer?.shapes?.[0]?.it?.find(item => item.ty === "sh");
-    const fill = bubbleLayer?.shapes?.[0]?.it?.find(item => item.ty === "fl");
-    const keyframes = shape?.ks?.k;
-
-    if (!Array.isArray(keyframes)) {
-        return;
-    }
-
-    const leftEdge = -254.24;
-    const capWidth = 59.212;
-    const openTipX = leftEdge + metrics.targetOpenWidth;
-    const openBodyX = openTipX - capWidth;
-    const compactTipX = -103.829;
-    const compactBodyX = -163.04;
-
-    keyframes.forEach(keyframe => {
-        const vertices = keyframe.s?.[0]?.v;
-
-        if (!vertices) {
-            return;
-        }
-
-        const isOpenFrame = Math.max(...vertices.map(point => point[0])) > 0;
-        const bodyX = isOpenFrame ? openBodyX : compactBodyX;
-        const tipX = isOpenFrame ? openTipX : compactTipX;
-
-        vertices[0][0] = bodyX;
-        vertices[4][0] = bodyX;
-        vertices[5][0] = tipX;
     });
-
-    if (fill?.c?.k) {
-        fill.c.k = hexToLottieColor(color);
-    }
-
-    data.w = Math.ceil(data.w + metrics.extraWidth);
 }
 
 function hexToLottieColor(hex) {
@@ -1240,15 +1613,36 @@ function placeAuraElement(aura, element, type, index) {
         }
 
         if (!overlapsShape && canClearAuraCollisions(type, collisions)) {
-            collisions.forEach(collision => collision.remove());
+            collisions.forEach(removeAuraElement);
             element.style.visibility = "";
             return true;
         }
     }
 
-    element.remove();
+    removeAuraElement(element);
 
     return false;
+}
+
+function removeAuraElement(element) {
+    element.querySelectorAll(".auraKeywordAnimation").forEach(disposeKeywordLottie);
+    element.remove();
+}
+
+function closeKeywordElement(element, onComplete) {
+    element.classList.add("auraKeywordClosing");
+    setTimeout(() => {
+        if (!element.isConnected) {
+            return;
+        }
+
+        element.classList.add("auraKeywordClosed");
+        setTimeout(() => {
+            if (element.isConnected) {
+                onComplete?.();
+            }
+        }, KEYWORD_DISAPPEAR_MS);
+    }, KEYWORD_CLOSE_MS);
 }
 
 function getAuraPlacementIndex(element, fallbackIndex) {
@@ -1603,7 +1997,7 @@ function getVisibleKeywordTexts(aura, currentType) {
     return new Set(
         [...aura.querySelectorAll(".auraKeyword")]
             .filter(element => element.dataset.auraType !== currentType)
-            .map(element => element.textContent)
+            .map(element => element.dataset.keywordText || element.textContent)
             .filter(Boolean)
     );
 }

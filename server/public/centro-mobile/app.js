@@ -1,5 +1,6 @@
 const socket = io();
 const deviceId = localStorage.getItem("deviceId");
+const backButton = document.getElementById("backButton");
 const LIGHT_BOX_ROTATION_MIN_DEG = 4;
 const LIGHT_BOX_ROTATION_MAX_DEG = 8;
 
@@ -7,9 +8,17 @@ socket.on("update", () => {
     loadUsers();
 });
 
+if (backButton) {
+    backButton.addEventListener("click", goBack);
+}
+
 async function loadUsers() {
     const response = await fetch("/users");
     const users = await response.json();
+
+    if (deviceId && users[deviceId] && !users[deviceId].inCenter) {
+        users[deviceId] = await enterCenter();
+    }
 
     renderUsers(users);
 }
@@ -18,7 +27,8 @@ function renderUsers(users) {
     const buttons = document.getElementById("centerUserButtons");
     const message = document.getElementById("centerMobileMessage");
     const currentUser = users[deviceId];
-    const otherUsers = Object.entries(users).filter(([id]) => id !== deviceId);
+    const otherUsers = Object.entries(users)
+        .filter(([id, user]) => id !== deviceId && user.inCenter);
 
     buttons.innerHTML = "";
 
@@ -52,6 +62,24 @@ function renderUsers(users) {
     });
 }
 
+async function enterCenter() {
+    const response = await fetch("/center/enter", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            deviceId
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error("Center enter error");
+    }
+
+    return response.json();
+}
+
 async function approachUser(targetDeviceId) {
     const response = await fetch("/center/approach", {
         method: "POST",
@@ -74,6 +102,15 @@ async function approachUser(targetDeviceId) {
 }
 
 loadUsers();
+
+function goBack() {
+    if (window.history.length > 1) {
+        window.history.back();
+        return;
+    }
+
+    window.location.href = "/mobile";
+}
 
 function randomLightBoxRotation() {
     const direction = Math.random() > 0.5 ? 1 : -1;

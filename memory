@@ -2,13 +2,13 @@
 
 ## Scopo
 
-Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma libri da pagine NFC, riceve sticker legati ai generi, compare in tempo reale su Dashboard e Centro, e puo avvicinarsi ad altri utenti per generare un match semantico tra libri.
+Prototipo Book Pride basato su URL NFC. Un utente si registra da mobile, conferma libri tramite pagine NFC, accumula sticker legati ai generi, compare nelle viste realtime e puo entrare nel Centro per avvicinarsi ad altri utenti. L'avvicinamento genera un match semantico tra un libro salvato da ciascun utente.
 
 ## Stack e avvio
 
 - Backend: Express + Socket.IO, porta `process.env.PORT` o `3000`.
-- Static files: `server/public`; cartella `Icons/` servita da `/Icons`.
-- Stato utenti e cronologie match: in memoria server, persi al riavvio.
+- Static files: `server/public`; `Icons/` servita da `/Icons`; `fonts/` servita da `/fonts`.
+- Stato server: utenti e cronologia delle coppie libro in memoria, persi al riavvio.
 - Persistenza browser: `localStorage` per `deviceId` e layout sticker.
 - Variabili ambiente: `.env` caricato manualmente da `server/server.js`; `OPENROUTER_API_KEY` abilita il matching libri.
 - Avvio: `npm start`.
@@ -16,102 +16,100 @@ Prototipo Book Pride basato su URL NFC. L'utente si registra da mobile, conferma
 
 ## Struttura principale
 
-- `server/server.js`: server, API, route, stato utenti, Socket.IO e matching OpenRouter.
+- `server/server.js`: server, API, route, stato utenti, Socket.IO, ingresso Centro e matching OpenRouter.
 - `server/data/books.js`: fonte unica del catalogo libri e dei metadati usati da NFC, catalogo, aura Centro e match.
-- `server/public/mobile/`: registrazione, collezione libri/sticker e cancellazione account.
-- `server/public/nfc/`: pagina NFC unica parametrizzata.
+- `server/public/mobile/`: registrazione, raccolta sticker e cancellazione account.
+- `server/public/nfc/`: pagina NFC unica parametrizzata da `?book=<bookId>`.
 - `server/public/dashboard/`: dashboard realtime.
-- `server/public/centro/`: visualizzazione Centro desktop con aura e scena match.
-- `server/public/centro-mobile/`: controlli mobile per avvicinarsi ad altri utenti.
+- `server/public/centro/`: visualizzazione Centro desktop con utenti presenti, aura e scena match.
+- `server/public/centro-mobile/`: ingresso nel Centro e scelta dell'utente a cui avvicinarsi.
 - `server/public/libri/`: catalogo libri responsive.
-- `server/public/shared/nav.css`: navbar condivisa desktop/mobile.
-- `server/public/animations/`: asset animazioni per aura Centro, inclusa la Lottie delle keyword.
+- `server/public/shared/nav.css`, `server/public/shared/nav.js`, `server/public/shared/fonts.css`: navigazione e font condivisi.
+- `server/public/animations/`: asset aura/keyword.
 - `server/public/books/`: copertine.
 - `server/public/stickers/`: sticker per genere.
-- `Icons/`: logo, GIF caricamento, icona cestino, sagome Centro.
+- `Icons/`: logo, GIF caricamento, cestino e sagome Centro.
 
 ## Route e API
 
-- `GET /` -> home statica da `server/public`.
-- `GET /mobile` -> pagina mobile.
-- `GET /dashboard` -> dashboard realtime.
-- `GET /centro` -> pagina Centro.
-- `GET /centro-mobile` -> pagina mobile per interazioni Centro.
-- `GET /libri` -> catalogo libri.
+- `GET /` -> home statica con link rapidi.
+- `GET /mobile`, `/dashboard`, `/centro`, `/centro-mobile`, `/libri` -> pagine principali.
 - `GET /nfc?book=<bookId>` -> pagina NFC unica.
 - `GET /nfc/:bookId`, `GET /scan/:bookId` -> redirect a `/nfc?book=<bookId>`.
 - `GET /api/books` -> catalogo completo.
 - `GET /api/book/:bookId` -> dati di un libro.
-- `GET /users` -> utenti normalizzati con `centerOrder` e `savedBooks`.
-- `POST /register` -> crea/aggiorna utente.
+- `GET /users` -> tutti gli utenti normalizzati con `savedBooks`; compatta `centerOrder` solo per utenti in Centro.
+- `POST /register` -> crea/aggiorna utente con `inCenter: false`.
 - `POST /nfc/confirm` -> aggiunge libro e generi all'utente.
-- `POST /center/approach` -> riordina gli utenti del Centro e avvia il match libri tra utente e target.
-- `POST /delete` -> elimina utente, pulisce `approachTargetId` e aggiorna i client.
+- `POST /center/enter` -> inserisce l'utente nel Centro e gli assegna `centerOrder`.
+- `POST /center/approach` -> riordina gli utenti nel Centro e avvia il match libri tra utente e target.
+- `POST /delete` -> elimina utente, pulisce `approachTargetId`, normalizza il Centro e aggiorna i client.
 
 ## Modello dati
 
 - `books[bookId]`: `title`, `author`, `coverImage`, `genres`, `narrativeStyles`, `topic`, `plot`, `protagonists`, `characters`, `temporalSetting`, `geographicSetting`, `moral`.
+- Catalogo attuale: 20 libri. `book20` e `Da cosa nasce cosa` di Bruno Munari; la vecchia voce `Sapiens` e relativa copertina non sono piu usate.
 - `users[deviceId]`:
   - `nickname`
-  - `collection`: generi raccolti, usati per sticker legacy/mobile.
+  - `collection`: generi raccolti, usati per sticker.
   - `savedBooks`: id dei libri confermati via NFC.
+  - `inCenter`: presenza effettiva nella vista Centro.
   - `approachTargetId`: utente scelto da `/centro-mobile`.
-  - `centerOrder`: ordine orizzontale nella pagina Centro.
-- `recentMatches`: cooldown in memoria per evitare match ripetuti troppo ravvicinati.
+  - `centerOrder`: ordine orizzontale tra gli utenti in Centro.
 - `matchedBookPairHistory`: coppie di titoli gia usate tra due utenti, per preferire combinazioni nuove.
 
-## Funzionalita attuali
+## Flussi attuali
 
-- Registrazione mobile con `nickname` e `deviceId` persistente.
-- Conferma NFC con redirect automatico a `/mobile`.
-- Utente non registrato su NFC: GIF `/Icons/Logo-animato.gif`, alert e redirect a `/mobile`.
-- Pagina NFC mostra titolo, copertina e conferma, senza generi.
-- Dashboard aggiornata via Socket.IO.
-- Cancellazione account da mobile con `/Icons/Cestino.png`.
-- Pagina `/libri` carica `GET /api/books`, mostra copertine responsive e linka ogni libro a `/nfc?book=<bookId>`.
-- Navbar condivisa con logo `/Icons/BookPride.png`; su mobile le pagine principali espongono azioni inferiori per Centro e Libri.
-- Pagina Centro desktop mostra utenti ordinati, scalati in base allo spazio e con sagoma sinistra/destra in base alla direzione di avvicinamento.
-- Aura Centro: mostra copertine, sticker e keyword dai metadati dei libri salvati; usa fallback su `collection` per utenti legacy senza `savedBooks`.
-- Aura Centro aggiornata con 3 slot libro, 6 slot keyword e sticker liberi in movimento leggero; ogni keyword resta associata a un libro visibile e viene rimossa quando la relativa copertina esce.
-- Le keyword dell'aura usano Lottie via CDN `lottie-web` e asset `/animations/aura-keyword-text.json`; il testo e il colore della bolla vengono modificati runtime, con fallback testuale se Lottie non carica.
-- `/centro-mobile` mostra gli altri utenti e permette di scegliere a chi avvicinarsi; la scelta aggiorna il Centro in realtime.
-- I pulsanti di `/centro-mobile` hanno una rotazione casuale in stile lightbox invece di rotazioni fisse per posizione.
-- Quando un utente si avvicina a un altro, il server genera un match tra un libro salvato da ciascun utente e il Centro mostra una scena temporanea con copertine, sticker condivisi, stili e keyword.
-- La scena match Centro ha layer keyword separato, pill con rotazione casuale leggera e dimensioni riviste per occupare piu spazio senza sovrapporsi alle copertine.
+- Mobile genera o riusa `deviceId`, registra il nickname, mostra sticker persistenti e permette la cancellazione account.
+- NFC verifica che il device sia registrato; se manca la registrazione mostra feedback e reindirizza a `/mobile`.
+- NFC mostra titolo, autore, copertina, sticker di genere e label "Libro di punta" per alcuni titoli selezionati.
+- Conferma NFC chiama `/nfc/confirm`, mostra overlay di feedback e torna a `/mobile`.
+- `/libri` carica `GET /api/books`, mostra copertine responsive e linka ogni libro alla relativa pagina NFC.
+- Navbar condivisa con menu desktop e azioni mobile; i font del progetto arrivano da `/fonts`.
+- `/centro-mobile` fa entrare automaticamente nel Centro l'utente registrato tramite `/center/enter`, poi mostra solo gli altri utenti gia presenti.
+- `/centro` mostra solo utenti con `inCenter: true`; dashboard e `/users` continuano a conoscere tutti gli utenti registrati.
+- La scelta di avvicinamento aggiorna l'ordine in realtime e attiva il match libri.
+
+## Centro e aura
+
+- Il Centro desktop ordina e scala gli utenti in base allo spazio disponibile.
+- Le sagome cambiano sinistra/destra in base alla direzione di avvicinamento.
+- L'aura usa i libri salvati come fonte principale e `collection` come fallback per utenti legacy senza `savedBooks`.
+- L'aura mostra copertine, sticker e keyword; le keyword animate usano `lottie-web` da CDN e `/animations/aura-keyword-text.json`, con fallback testuale se Lottie non carica.
+- Gli elementi dell'aura usano collisioni e maschere delle sagome per ridurre sovrapposizioni.
+- La scena match si ancora al punto medio dei due utenti coinvolti quando ci sono piu di due utenti; con uno o due utenti resta centrata.
+- La scena match ha layer keyword dedicato, layout anticollisione e chiusura animata delle pill.
 
 ## Matching libri
 
-- Trigger: `POST /center/approach`, dopo il riordino utenti.
+- Trigger: `POST /center/approach`, solo se entrambi gli utenti sono registrati e `inCenter`.
 - Provider: OpenRouter `https://openrouter.ai/api/v1/chat/completions`.
 - Modello configurato: `anthropic/claude-haiku-4.5`.
-- Richiede `OPENROUTER_API_KEY`; in assenza della chiave viene emesso `bookMatchError`.
+- In assenza di `OPENROUTER_API_KEY`, o se non esce un match valido, viene emesso `bookMatchError`.
 - Eventi Socket.IO:
   - `update`: dati utenti cambiati.
-  - `bookMatchStarted`: match avviato; il Centro ora non mostra loader visibile.
+  - `bookMatchStarted`: match avviato; il Centro non mostra loader visibile.
   - `bookMatch`: risultato valido da mostrare nel Centro.
   - `bookMatchError`: errore match, messaggio temporaneo.
-- Il prompt sceglie la miglior coppia di libri usando priorita: temi uguali, temi affini, autore uguale, generi uguali, stili narrativi uguali.
-- `sanitizeBookMatch()` valida lato server i match letterali contro `books.js`, filtra keyword non presenti nei campi ammessi e ordina le categorie.
-- `avoidBookPairs` e `matchedBookPairHistory` evitano di riproporre la stessa coppia finche esistono alternative; la cronologia si resetta quando tutte le coppie possibili sono state usate.
-- `MATCH_COOLDOWN_MS` e `recentMatches` evitano richieste ripetute entro 8 secondi per la stessa coppia direzionale di utenti.
+- Il server costruisce coppie candidate tra i libri salvati dai due utenti, scarta coppie non visualizzabili e preferisce coppie non ancora usate.
+- Il payload a OpenRouter contiene una sola coppia di libri per tentativo, piu `avoidBookPairs` e `preferNewBookPair: true`.
+- Il prompt non usa piu `temi_uguali`: la priorita e `temi_affini`, poi autore uguale, generi uguali, stili narrativi uguali.
+- `sanitizeBookMatch()` valida lato server i titoli contro `books.js`, ricalcola autore/generi/stili con confronto letterale, accetta al massimo un tema affine e filtra `keywords_1/2` solo da `topic`, `plot`, `moral`.
+- `matchedBookPairHistory` si resetta per una coppia di utenti quando tutte le coppie possibili sono state usate.
 
 ## Note implementative
 
 - `addBookToUser()` aggiunge `bookId` a `savedBooks` una sola volta, ma aggiunge sempre i generi del libro a `collection`.
-- `normalizeCenterOrder()` compatta l'ordine dopo cancellazioni o dati incompleti.
-- `GET /users` garantisce `savedBooks: []` anche per utenti legacy.
-- Il Centro carica prima `/api/books`, poi `/users`, e ricalcola layout al resize.
-- Gli sticker sono caricati da `/stickers/<GenereCapitalizzato>.png`.
+- `collection` usa stringhe di genere come arrivano dal catalogo; gli sticker mobile vengono caricati da `/stickers/${genre}.png`.
+- NFC usa una mappa interna genere -> file sticker per gestire nomi capitalizzati e fallback.
 - Le copertine sono caricate da `/books/<coverImage>`.
-- Le keyword animate sono caricate da `/animations/aura-keyword-text.json`; il template contiene testo base `Drammatico`, sostituito lato client.
-- La collisione dell'aura usa bounding box e, quando possibile, maschera alpha della sagoma.
-- La collisione dell'aura ora protegge gli elementi appena creati con tempi minimi di visibilita, lega massimo 2 keyword per libro e consente una piccola sovrapposizione controllata keyword-copertina.
-- La scena match si ancora al punto medio dei due utenti coinvolti quando ci sono piu di due utenti; con uno o due utenti resta centrata.
+- `normalizeCenterOrder()` e `getCenterOrderedIds()` considerano solo utenti con `inCenter`.
+- `GET /users` garantisce `savedBooks: []` anche per utenti legacy.
+- Dopo modifiche a `server/server.js` serve riavviare il server.
 
 ## Limiti
 
 - Nessun database o persistenza server-side.
 - Nessun test automatico.
 - `collection` puo contenere generi duplicati.
-- Dopo modifiche a `server/server.js` serve riavviare il server.
 - Le keyword animate dipendono dalla CDN di `lottie-web`; senza rete/CDN resta il fallback testuale.

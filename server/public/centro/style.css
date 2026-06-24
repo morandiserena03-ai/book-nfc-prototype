@@ -22,13 +22,28 @@ body{
     padding:150px 50px 0;
     color:white;
     font-family:"PP Monument Wide", sans-serif;
+    line-height:1.3225;
     background:#05053E;
+}
+
+.desktopHeader .desktopNav,
+.desktopHeader .desktopNav a{
+    font-family:"Book Nav Regular", "PP Monument Wide", sans-serif !important;
+    font-weight:400 !important;
+    font-synthesis:none;
+    font-synthesis-weight:none;
+}
+
+.desktopHeaderDrawer .desktopMenuPanel,
+.desktopHeaderDrawer .desktopMenuPanel a{
+    font-family:"PPMonumentExtend-Black", "PP Registration Extended", "PP Monument Wide", sans-serif !important;
+    font-weight:900 !important;
 }
 
 .centerPage{
     position:relative;
     min-height:calc(100vh - 150px);
-    overflow:hidden;
+    overflow:visible;
 }
 
 .centerUsers{
@@ -36,6 +51,7 @@ body{
     right:4vw;
     bottom:-34px;
     left:4vw;
+    z-index:31;
     min-height:340px;
 }
 
@@ -45,10 +61,11 @@ body{
     right:0;
     bottom:0;
     left:0;
-    z-index:30;
+    z-index:0;
     width:100%;
     min-height:100%;
     pointer-events:none;
+    background:transparent;
 }
 
 .bookMatchPanel[hidden]{
@@ -59,7 +76,7 @@ body{
     margin:0;
     color:#9797FD;
     font-size:0.72rem;
-    line-height:1.25;
+    line-height:1.653125;
     letter-spacing:0;
     text-transform:uppercase;
 }
@@ -68,7 +85,7 @@ body{
     margin:8px 0 0;
     color:#fff;
     font-size:clamp(1.25rem, 2.4vw, 2rem);
-    line-height:1.05;
+    line-height:1.388625;
     letter-spacing:0;
 }
 
@@ -89,13 +106,14 @@ body{
 }
 
 .bookMatchKeywordLayer{
-    z-index:4;
-    display:grid;
-    grid-template-columns:minmax(0, 1fr) max-content minmax(0, 1fr);
-    column-gap:clamp(18px, 2.8vw, 34px);
-    align-items:start;
-    padding-top:13%;
+    z-index:101;
+    --match-pill-base-height:calc(clamp(30px, 4vh, 42px) * var(--match-user-scale) * 1.05);
+    right:-12%;
+    left:-12%;
+    height:68%;
+    padding:0;
     pointer-events:none;
+    transform:translateY(-22px);
 }
 
 .bookMatchKeywordCloud,
@@ -103,6 +121,11 @@ body{
 .bookMatchBookCluster,
 .bookMatchSharedCluster{
     position:absolute;
+}
+
+.bookMatchKeywordCloud,
+.bookMatchGeneratedKeyword{
+    position:relative;
 }
 
 .bookMatchBookCluster,
@@ -116,11 +139,19 @@ body{
 
 .bookMatchBookCluster-right,
 .bookMatchSharedSticker-right{
+    --book-match-reveal-delay:0.08s;
+}
+
+.bookMatchBookCluster-right{
     animation-delay:0.08s;
 }
 
 .bookMatchBookCluster-left,
 .bookMatchSharedSticker-left{
+    --book-match-reveal-delay:0.82s;
+}
+
+.bookMatchBookCluster-left{
     animation-delay:0.82s;
 }
 
@@ -137,45 +168,33 @@ body{
 }
 
 .bookMatchKeywordCloud{
-    position:relative;
-    display:grid;
-    gap:calc(clamp(6px, 0.8vw, 10px) * var(--match-user-scale));
-    width:max-content;
-    max-width:100%;
+    position:absolute;
+    inset:0;
+    display:block;
+    width:100%;
+    max-width:none;
     min-width:0;
-}
-
-.bookMatchKeywordCloud-left{
-    justify-self:end;
-    justify-items:start;
-}
-
-.bookMatchKeywordCloud-right{
-    justify-self:start;
-    justify-items:end;
-}
-
-.bookMatchKeywordCloud-left .bookMatchPill:nth-child(2){
-    margin-left:10%;
-}
-
-.bookMatchKeywordCloud-right .bookMatchPill:nth-child(2){
-    margin-right:10%;
+    margin-top:0;
 }
 
 .bookMatchGeneratedKeyword{
-    position:relative;
+    position:absolute;
+    inset:0;
     z-index:3;
-    display:grid;
-    justify-self:center;
-    justify-items:center;
-    width:max-content;
+    display:block;
+    width:100%;
     max-width:100%;
     min-width:0;
+    transform:none;
+}
+
+.bookMatchKeywordLayer .bookMatchPill{
+    position:absolute;
+    margin:0;
 }
 
 .bookMatchBottomLayer{
-    z-index:2;
+    z-index:100;
 }
 
 .bookMatchBookCluster{
@@ -231,7 +250,6 @@ body{
     height:auto;
     aspect-ratio:1 / 1;
     object-fit:contain;
-    filter:drop-shadow(0 12px 18px rgba(0, 0, 0, 0.22));
     transform:rotate(var(--match-sticker-rotation, -8deg));
 }
 
@@ -298,14 +316,18 @@ body{
     left:50%;
     z-index:1;
     width:calc(var(--match-sticker-size) * 1.9125);
+    --aura-motion-y:0px;
+    animation:
+        bookMatchRevealStep 0.5s ease var(--book-match-reveal-delay, 0s) both,
+        auraMotionFloat 2.6s ease-in-out var(--aura-motion-delay, 0ms) infinite;
 }
 
 .bookMatchSharedSticker:first-child{
-    transform:translate(-62%, -48%) rotate(var(--match-sticker-rotation, -12deg));
+    transform:translate(-62%, calc(-48% + var(--aura-motion-y))) rotate(var(--match-sticker-rotation, -12deg));
 }
 
 .bookMatchSharedSticker:last-child{
-    transform:translate(-38%, -52%) rotate(var(--match-sticker-rotation, 12deg));
+    transform:translate(-38%, calc(-52% + var(--aura-motion-y))) rotate(var(--match-sticker-rotation, 12deg));
 }
 
 .bookMatchStyleStack{
@@ -315,48 +337,49 @@ body{
     z-index:3;
     display:grid;
     justify-items:center;
-    gap:calc(clamp(4px, 0.55vw, 8px) * var(--match-user-scale));
+    gap:calc(4px * var(--match-user-scale));
     transform:translate(-50%, -50%);
 }
 
 .bookMatchStyleStack .bookMatchPill:nth-child(2){
-    margin-top:-4px;
+    margin-top:0;
 }
 
 .bookMatchPill{
+    position:relative;
+    --aura-motion-y:0px;
+    --aura-keyword-closed-width:calc(44px * var(--match-user-scale) * var(--match-pill-scale, 1));
+    --aura-keyword-text-scale:var(--match-user-scale, 1);
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    width:max-content;
-    height:calc(42px * var(--center-keyword-scale) * 1.05);
-    min-width:0;
-    max-width:min(calc(275px * var(--center-keyword-scale) * 1.05), 48vw);
-    padding:0 calc(1.02em * var(--center-keyword-scale) * 1.05);
+    width:fit-content;
+    min-width:calc(44px * var(--match-user-scale) * var(--match-pill-scale, 1));
+    height:calc(clamp(30px, 4vh, 42px) * var(--match-user-scale) * var(--match-pill-scale, 1) * 1.05);
+    padding:
+        calc(6px * var(--match-user-scale) * var(--match-pill-scale, 1))
+        calc(16px * var(--match-user-scale) * var(--match-pill-scale, 1));
     border-radius:999px;
-    box-sizing:border-box;
+    background:var(--aura-keyword-color, #9797FD);
     color:#ffffff;
-    font-weight:700;
-    line-height:1;
-    letter-spacing:0;
-    text-align:center;
-    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-keyword-scale) * 1.05);
-    white-space:nowrap;
-    overflow-wrap:anywhere;
-    transform:rotate(var(--match-pill-rotation, 0deg));
+    overflow:hidden;
+    clip-path:inset(0 calc(100% - var(--aura-keyword-closed-width)) 0 0 round 999px);
+    transform:translateY(var(--aura-motion-y)) rotate(var(--match-pill-rotation, 0deg));
+    transform-origin:center;
+    isolation:isolate;
+    transition:clip-path 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.16s ease;
 }
 
 .bookMatchPill-blue{
-    background:#0000FF;
     color:#ffffff;
 }
 
 .bookMatchPill-lavender{
-    background:var(--aura-keyword-color, #9797FD);
     color:#ffffff;
 }
 
 .bookMatchPill-white{
-    background:#fff;
+    background:#ffffff;
     color:#0000FF;
 }
 
@@ -446,7 +469,7 @@ body.centerTwoUsers .centerUserAura{
     overflow-wrap:anywhere;
     color:#000;
     font-size:calc(clamp(0.62rem, 0.85vw, 0.86rem) * var(--center-user-scale));
-    line-height:1;
+    line-height:1.3225;
     letter-spacing:0;
     text-align:left;
     pointer-events:none;
@@ -465,6 +488,12 @@ body.centerTwoUsers .centerUserAura{
 .auraMotionElement{
     animation:auraMotionFloat 2.6s ease-in-out infinite;
     animation-delay:var(--aura-motion-delay, 0ms);
+}
+
+.bookMatchSharedSticker.auraMotionElement{
+    animation:
+        bookMatchRevealStep 0.5s ease var(--book-match-reveal-delay, 0s) both,
+        auraMotionFloat 2.6s ease-in-out var(--aura-motion-delay, 0ms) infinite;
 }
 
 .auraBook{
@@ -503,14 +532,70 @@ body.centerTwoUsers .centerUserAura{
 }
 
 .auraKeyword{
-    display:block;
-    width:calc(clamp(136px, 11.5vw, 190px) * var(--aura-keyword-width-ratio, 1) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
-    height:calc(clamp(76.5px, 6.47vw, 106.875px) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
-    aspect-ratio:var(--aura-keyword-aspect, 16 / 9);
+    --aura-keyword-closed-width:calc(44px * var(--center-user-scale) * var(--center-visual-scale));
+    --aura-keyword-text-scale:calc(var(--center-user-scale) * var(--center-visual-scale));
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:fit-content;
+    min-width:calc(44px * var(--center-user-scale) * var(--center-visual-scale));
+    height:calc(clamp(30px, 4vh, 42px) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
+    padding:
+        calc(6px * var(--center-user-scale) * var(--center-visual-scale))
+        calc(16px * var(--center-user-scale) * var(--center-visual-scale));
+    border-radius:999px;
+    background:var(--aura-keyword-color, #9797FD);
     color:#ffffff;
+    overflow:hidden;
+    clip-path:inset(0 calc(100% - var(--aura-keyword-closed-width)) 0 0 round 999px);
+    isolation:isolate;
+    transition:clip-path 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.16s ease;
 }
 
-.auraKeywordAnimation,
+.auraKeywordLottieReady,
+.auraKeywordFallbackVisible{
+    clip-path:inset(0 0 0 0 round 999px);
+}
+
+.auraKeywordClosing{
+    clip-path:inset(0 calc(100% - var(--aura-keyword-closed-width)) 0 0 round 999px);
+    opacity:1;
+}
+
+.auraKeywordClosed{
+    opacity:0;
+}
+
+.bookMatchPill.auraKeywordLottieReady,
+.bookMatchPill.auraKeywordFallbackVisible{
+    clip-path:inset(0 0 0 0 round 999px);
+}
+
+.bookMatchPill.auraKeywordClosing{
+    clip-path:inset(0 calc(100% - var(--aura-keyword-closed-width)) 0 0 round 999px);
+    opacity:1;
+}
+
+.auraKeywordAnimation{
+    position:absolute;
+    top:50%;
+    left:50%;
+    z-index:1;
+    display:block;
+    width:calc(76px * var(--center-user-scale, 1) * var(--center-visual-scale, 1) * var(--match-pill-scale, 1));
+    height:calc(42px * var(--center-user-scale, 1) * var(--center-visual-scale, 1) * var(--match-pill-scale, 1));
+    opacity:1;
+    transform:translate(-50%, -50%);
+    transition:opacity 0.16s ease;
+    pointer-events:none;
+    visibility:hidden;
+}
+
+.bookMatchPill .auraKeywordAnimation{
+    width:calc(76px * var(--match-user-scale, 1) * var(--match-pill-scale, 1));
+    height:calc(42px * var(--match-user-scale, 1) * var(--match-pill-scale, 1));
+}
+
 .auraKeywordAnimation svg{
     display:block;
     width:100%;
@@ -526,40 +611,92 @@ body.centerTwoUsers .centerUserAura{
     white-space:nowrap;
 }
 
-.auraKeywordFallbackVisible{
-    display:block;
-}
-
-.auraKeywordFallbackVisible .auraKeywordAnimation{
-    display:none;
-}
-
-.auraKeywordFallbackVisible .auraKeywordFallback{
-    position:absolute;
-    top:50%;
-    left:50%;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
+.auraKeywordContent{
+    position:static;
+    z-index:2;
+    display:grid;
+    place-items:center;
     width:max-content;
-    height:calc(clamp(76.5px, 6.47vw, 106.875px) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
+    max-width:100%;
+    height:100%;
     min-width:0;
-    max-width:min(calc(275px * var(--center-user-scale) * 1.05), 48vw);
-    padding:0 calc(1.02em * var(--center-user-scale) * 1.05);
-    box-sizing:border-box;
-    border-radius:999px;
-    background:var(--aura-keyword-color, #9797FD);
-    color:#ffffff;
-    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--center-user-scale) * 1.05);
-    font-weight:700;
+    color:currentColor;
+    font-family:"PPMonumentExtend-Black", "PP Registration Extended", sans-serif;
+    font-size:calc(clamp(0.6rem, 0.8vw, 0.85rem) * var(--aura-keyword-text-scale, 1) * var(--match-pill-scale, 1) * 1.05);
+    font-weight:900;
+    font-synthesis:none;
+    font-synthesis-weight:none;
     line-height:1;
     letter-spacing:0;
     text-align:center;
     white-space:nowrap;
-    overflow-wrap:anywhere;
-    overflow:visible;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.auraKeywordDots,
+.auraKeywordFallback{
+    grid-area:1 / 1;
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:max-content;
+    height:auto;
+    min-width:0;
     clip:auto;
+    white-space:nowrap;
+    overflow:hidden;
+    overflow-wrap:normal;
+    transform:none;
+    transition:opacity 0.16s ease;
+    font-family:"PPMonumentExtend-Black", "PP Registration Extended", sans-serif;
+    font-weight:900;
+    font-synthesis:none;
+    font-synthesis-weight:none;
+}
+
+.auraKeywordDots{
+    position:absolute;
+    top:50%;
+    left:calc(var(--aura-keyword-closed-width) / 2);
+    opacity:1;
+    font-size:1em;
+    line-height:1;
+    text-align:center;
     transform:translate(-50%, -50%);
+}
+
+.auraKeywordFallback{
+    opacity:0;
+}
+
+.auraKeywordLottieReady .auraKeywordDots,
+.auraKeywordFallbackVisible .auraKeywordDots,
+.auraKeywordClosing .auraKeywordDots{
+    opacity:0;
+}
+
+.auraKeywordLottieReady .auraKeywordDots,
+.auraKeywordFallbackVisible .auraKeywordDots{
+    transform:translate(-50%, -50%);
+}
+
+.auraKeywordLottieReady .auraKeywordFallback,
+.auraKeywordFallbackVisible .auraKeywordFallback{
+    opacity:1;
+}
+
+.auraKeywordClosing .auraKeywordFallback{
+    opacity:0;
+}
+
+.auraKeywordFallbackVisible{
+    display:inline-flex;
+}
+
+.auraKeywordFallbackVisible .auraKeywordFallback{
+    opacity:1;
 }
 
 @keyframes auraMotionFloat{
@@ -631,13 +768,15 @@ body.centerTwoUsers .centerUserLeft .centerUserNickname{
     }
 
     .bookMatchKeywordLayer{
-        grid-template-columns:minmax(0, 1fr) max-content minmax(0, 1fr);
-        column-gap:clamp(12px, 3.2vw, 22px);
-        padding-top:14%;
+        --match-pill-base-height:calc(36px * var(--match-user-scale) * 1.05);
+        right:-6%;
+        left:-6%;
+        height:58%;
+        padding:0;
     }
 
     .bookMatchKeywordCloud{
-        gap:6px;
+        gap:0;
     }
 
     .bookMatchBookCluster{
@@ -677,16 +816,17 @@ body.centerTwoUsers .centerUserLeft .centerUserNickname{
 
     .bookMatchStyleStack{
         top:50%;
-        gap:4px;
+        gap:calc(3px * var(--match-user-scale));
+    }
+
+    .bookMatchStyleStack .bookMatchPill:nth-child(2){
+        margin-top:0;
     }
 
     .bookMatchPill{
-        width:max-content;
-        height:calc(40px * var(--center-keyword-scale) * 1.05);
-        max-width:calc(188px * 1.05);
-        min-width:0;
-        padding:0 calc(1em * var(--center-keyword-scale) * 1.05);
-        font-size:calc(0.65rem * var(--center-keyword-scale) * 1.05);
+        min-width:calc(44px * var(--match-user-scale) * var(--match-pill-scale, 1));
+        height:calc(36px * var(--match-user-scale) * var(--match-pill-scale, 1) * 1.05);
+        padding:6px 16px;
     }
 
     .centerUser{
@@ -701,8 +841,9 @@ body.centerTwoUsers .centerUserLeft .centerUserNickname{
     }
 
     .auraKeyword{
-        width:calc(148px * var(--aura-keyword-width-ratio, 1) * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
-        height:calc(83.25px * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
+        min-width:calc(44px * var(--center-user-scale) * var(--center-visual-scale));
+        height:calc(36px * var(--center-user-scale) * var(--center-visual-scale) * 1.05);
+        padding:6px 16px;
     }
 
     .centerUserNickname{

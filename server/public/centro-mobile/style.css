@@ -26,9 +26,10 @@
 body{
     min-height:100vh;
     margin:0;
-    padding:128px 28px 28px;
+    padding:177px 30px 28px;
     color:white;
     font-family:"PP Monument Wide", sans-serif;
+    line-height:1.3225;
     background:#05053E;
     overflow:hidden;
 }
@@ -38,9 +39,44 @@ body{
     display:none;
 }
 
+.back-button{
+    position:absolute;
+    top:max(22px, calc(env(safe-area-inset-top) + 22px));
+    left:max(24px, calc(env(safe-area-inset-left) + 24px));
+    z-index:5;
+    width:28px;
+    height:28px;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    color:white;
+    cursor:pointer;
+}
+
+.back-button::before,
+.back-button::after{
+    content:"";
+    position:absolute;
+    left:13px;
+    top:1px;
+    width:3px;
+    height:27px;
+    border-radius:999px;
+    background:currentColor;
+}
+
+.back-button::before{
+    transform:rotate(45deg);
+}
+
+.back-button::after{
+    transform:rotate(-45deg);
+}
+
 .centerMobilePage{
     display:flex;
-    min-height:calc(100vh - 156px);
+    min-height:calc(100vh - 205px);
     flex-direction:column;
     align-items:stretch;
     justify-content:flex-start;
@@ -49,22 +85,22 @@ body{
 
 .centerMobilePage h1{
     position:absolute;
-    top:39px;
+    top:max(82px, calc(env(safe-area-inset-top) + 82px));
     left:calc(var(--app-left) + 27px);
     width:min(340px, calc(var(--app-width) - 54px));
     margin:0;
     color:#ffffff;
     font-family:"PP Registration Extended", "PP Monument Wide", sans-serif;
-    font-size:clamp(1.72rem, 7.6vw, 1.95rem);
+    font-size:clamp(1.5rem, 6.8vw, 1.56rem);
     font-weight:900;
-    line-height:0.92;
+    line-height:1.2167;
     letter-spacing:0;
 }
 
 .centerUserButtons{
     display:flex;
     flex-direction:column;
-    gap:34px;
+    gap:32px;
     align-items:stretch;
 }
 
@@ -76,9 +112,9 @@ body{
     padding:0 20px;
     background:#9797FD;
     color:white;
-    font:inherit;
-    font-size:clamp(1.62rem, 7.8vw, 2.35rem);
-    font-weight:800;
+    font-family:"PP Registration Extended", "PP Monument Wide", sans-serif;
+    font-size:clamp(1.65rem, 7.6vw, 1.95rem);
+    font-weight:900;
     line-height:1;
     text-align:center;
     box-shadow:none;
@@ -91,5 +127,5 @@ body{
     margin:0;
     color:white;
     font-size:0.78rem;
-    line-height:1.25;
+    line-height:1.653125;
 }

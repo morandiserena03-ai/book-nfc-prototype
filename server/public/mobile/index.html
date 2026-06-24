@@ -23,23 +23,31 @@
         alt="Caricamento"
     >
 
-    <header class="desktopHeader">
+    <header class="desktopHeader desktopHeaderDrawer">
         <a class="brandLink" href="/mobile" aria-label="Book Pride">
             <img src="/Icons/BookPride.png" alt="Book Pride">
         </a>
 
-        <nav class="desktopNav" aria-label="Navigazione principale">
+        <button
+            class="desktopMenuButton"
+            type="button"
+            aria-label="Apri menu"
+            aria-controls="desktopMenu"
+            aria-expanded="false">
+            <img src="/Icons/burger-bar.png" alt="">
+        </button>
+
+        <nav
+            id="desktopMenu"
+            class="desktopNav desktopMenuPanel"
+            aria-label="Navigazione principale"
+            aria-hidden="true">
             <a href="/dashboard">Dashboard</a>
-            <a href="/mobile">Mobile</a>
+            <a href="/mobile" aria-current="page">Mobile</a>
             <a href="/centro">Centro</a>
-            <a href="/libri">Libri</a>
+            <a href="/libri">Libreria dell'editore</a>
         </nav>
     </header>
-
-    <nav class="mobileNav mobileNavHomeActions" aria-label="Navigazione mobile">
-        <a href="/centro-mobile">Centro</a>
-        <a href="/libri">Libri</a>
-    </nav>
 
     <main class="heroContent">
     <h1 class="title">
@@ -63,6 +71,7 @@
     <div id="stickers"></div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/shared/nav.js"></script>
     <script src="app.js"></script>
 
 </body>

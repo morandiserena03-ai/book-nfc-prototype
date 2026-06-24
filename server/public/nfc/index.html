@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Conferma libro</title>
     <style>
+        @font-face{
+            font-family:"PP Monument Wide";
+            src:url("/fonts/PPMonumentWide-Regular.otf") format("opentype");
+            font-weight:400;
+            font-style:normal;
+            font-display:swap;
+        }
+
+        @font-face{
+            font-family:"PP Registration Extended";
+            src:url("/fonts/PPMonumentExtended-Black.otf") format("opentype");
+            font-weight:900;
+            font-style:normal;
+            font-display:swap;
+        }
+
         * { box-sizing: border-box; }
         html, body {
             width: 100%;
@@ -14,62 +30,166 @@
             background: #05053E;
             color: white;
             font-family: "PP Monument Wide", sans-serif;
+            line-height: 1.3225;
         }
         body {
             display: flex;
-            align-items: center;
+            align-items: stretch;
             justify-content: center;
-            padding: 24px;
+            min-height: 100dvh;
+            padding: 0;
+            overflow: hidden;
         }
         main {
             width: min(100%, 420px);
+            min-height: 100dvh;
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             text-align: center;
+            padding: 104px 50px 34px;
+            overflow: hidden;
         }
         h1 {
-            margin: 0 0 20px;
-            font-size: clamp(1.25rem, 9vw, 2rem);
-            line-height: 1;
-            font-weight: 700;
+            position: absolute;
+            top: max(25px, calc(env(safe-area-inset-top) + 25px));
+            left: 72px;
+            right: 72px;
+            z-index: 5;
+            margin: 0;
+            font-family: "PP Registration Extended", "PP Monument Wide", sans-serif;
+            font-size: clamp(1rem, 4.6vw, 1.06rem);
+            line-height: 1.3225;
+            font-weight: 900;
+        }
+        .back-button {
+            position: absolute;
+            top: max(22px, calc(env(safe-area-inset-top) + 22px));
+            left: max(24px, calc(env(safe-area-inset-left) + 24px));
+            z-index: 5;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+        }
+        .back-button::before,
+        .back-button::after {
+            content: "";
+            position: absolute;
+            left: 13px;
+            top: 1px;
+            width: 3px;
+            height: 27px;
+            border-radius: 999px;
+            background: currentColor;
+        }
+        .back-button::before {
+            transform: rotate(45deg);
+        }
+        .back-button::after {
+            transform: rotate(-45deg);
+        }
+        .sticker-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            pointer-events: none;
+        }
+        .genre-sticker {
+            position: absolute;
+            width: var(--sticker-size, 76px);
+            height: auto;
+            transform: translate(-50%, -50%) rotate(var(--sticker-rotation, 0deg));
+        }
+        .genre-sticker:nth-child(1) { left: 40%; top: 16%; --sticker-size: 76px; --sticker-rotation: -18deg; z-index: 4; }
+        .genre-sticker:nth-child(2) { left: 54%; top: 15%; --sticker-size: 70px; --sticker-rotation: 12deg; z-index: 4; }
+        .genre-sticker:nth-child(3) { left: 97%; top: 22%; --sticker-size: 78px; --sticker-rotation: -18deg; }
+        .genre-sticker:nth-child(4) { left: -3%; top: 24%; --sticker-size: 76px; --sticker-rotation: -22deg; }
+        .genre-sticker:nth-child(5) { left: 3%; top: 39%; --sticker-size: 76px; --sticker-rotation: -14deg; }
+        .genre-sticker:nth-child(6) { left: 98%; top: 60%; --sticker-size: 76px; --sticker-rotation: 18deg; }
+        .genre-sticker:nth-child(7) { left: 0%; top: 69%; --sticker-size: 72px; --sticker-rotation: 10deg; }
+        .genre-sticker:nth-child(8) { left: 98%; top: 88%; --sticker-size: 74px; --sticker-rotation: 12deg; }
+        .genre-sticker:nth-child(9) { left: -2%; top: 91%; --sticker-size: 80px; --sticker-rotation: -15deg; }
+        .genre-sticker:nth-child(10) { left: 78%; top: 98%; --sticker-size: 82px; --sticker-rotation: -6deg; }
+        .cover-stack {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            display: flex;
+            justify-content: center;
         }
         .book-cover {
             display: block;
             width: auto;
             max-width: 100%;
-            height: 458px;
-            margin: 0 0 28px;
-            border-radius: 18px;
+            height: min(63.95dvh, 509px);
+            margin: 0;
+            border-radius: 0;
             box-shadow: 0 20px 60px rgba(0,0,0,0.35);
         }
+        .book-meta {
+            position: relative;
+            z-index: 3;
+            width: 100%;
+            margin: 18px 0 38px;
+            text-align: left;
+        }
+        .book-title {
+            margin: 0 0 3px;
+            font-family: "PP Registration Extended", "PP Monument Wide", sans-serif;
+            font-size: clamp(1rem, 4.6vw, 1.06rem);
+            line-height: 1.45475;
+            font-style: italic;
+            font-weight: 900;
+            overflow-wrap: anywhere;
+        }
+        .book-author {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.587;
+            letter-spacing: 0.04em;
+            color: rgba(255, 255, 255, 0.72);
+        }
         @media (max-width: 699px) {
+            main {
+                width: 100%;
+                padding: 104px 51px 33px;
+            }
             .book-cover {
-                height: min(72vw, 330px);
+                height: min(63.95dvh, 509px);
             }
         }
-        button {
+        .confirm-button {
+            position: relative;
+            z-index: 5;
             width: 100%;
-            max-width: 320px;
+            max-width: 292px;
             border: none;
-            border-radius: 14px;
-            padding: 16px 18px;
+            border-radius: 999px;
+            padding: 9px 18px 10px;
             background: white;
-            color: #05053E;
-            font-size: 1rem;
-            font-weight: 800;
-            text-transform: lowercase;
+            color: #0000ff;
+            font-family: "PP Registration Extended", "PP Monument Wide", sans-serif;
+            font-size: 0.86rem;
+            font-weight: 900;
             cursor: pointer;
+            transform: translateY(-15px);
         }
-        button:disabled {
+        .confirm-button:disabled {
             opacity: 0.72;
         }
         .message {
             display: none;
             margin: 24px 0 0;
             font-size: clamp(1.25rem, 9vw, 2rem);
-            line-height: 1;
+            line-height: 1.3225;
             font-weight: 700;
         }
         .error {
@@ -84,6 +204,7 @@
         body.loading,
         body.registration-redirect {
             padding: 0;
+            align-items: center;
         }
         body.loading #confirmation,
         body.registration-redirect #confirmation {
@@ -91,6 +212,46 @@
         }
         body:not(.loading):not(.registration-redirect) .page-loader {
             display: none;
+        }
+        .feedback-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: grid;
+            place-items: center;
+            padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+            background: rgba(5, 5, 62, 0.18);
+            pointer-events: all;
+        }
+        .feedback-overlay[hidden] {
+            display: none;
+        }
+        .feedback-card {
+            display: grid;
+            place-items: center;
+            align-content: center;
+            width: min(100%, 394px);
+            min-height: min(86dvh, 852px);
+            padding: 48px 28px;
+            border-radius: 48px;
+            background: rgba(5, 5, 62, 0.8);
+            color: white;
+            text-align: center;
+        }
+        .feedback-icon {
+            display: block;
+            width: 42px;
+            height: 42px;
+            margin: 0 0 16px;
+            object-fit: contain;
+        }
+        .feedback-title {
+            margin: 0;
+            font-family: "PP Registration Extended", "PP Monument Wide", sans-serif;
+            font-size: clamp(1rem, 5.4vw, 1.22rem);
+            font-weight: 900;
+            line-height: 1.3225;
+            letter-spacing: 0;
         }
     </style>
 </head>
@@ -103,12 +264,27 @@
     >
 
     <main id="confirmation">
-        <h1 id="bookTitle"></h1>
-        <img id="bookCover" class="book-cover" alt="Copertina libro" hidden>
-        <button id="confirmButton" type="button">aggiungi alla libreria</button>
+        <button id="backButton" class="back-button" type="button" aria-label="Torna indietro"></button>
+        <div id="stickerLayer" class="sticker-layer" aria-hidden="true"></div>
+        <h1 id="pageTitle"></h1>
+        <div class="cover-stack">
+            <img id="bookCover" class="book-cover" alt="Copertina libro" hidden>
+        </div>
+        <div class="book-meta">
+            <p id="bookTitle" class="book-title"></p>
+            <p id="bookAuthor" class="book-author"></p>
+        </div>
+        <button id="confirmButton" class="confirm-button" type="button">Aggiungi in libreria</button>
         <p class="message" id="successMessage">Aggiunto in libreria</p>
         <p class="error" id="errorMessage"></p>
     </main>
+
+    <div id="feedbackOverlay" class="feedback-overlay" role="status" aria-live="polite" hidden>
+        <section class="feedback-card" aria-label="Libro aggiunto alla libreria">
+            <img class="feedback-icon" src="/Icons/book-added-check.png" alt="">
+            <p class="feedback-title">Libro aggiunto alla libreria</p>
+        </section>
+    </div>
 
     <script src="app.js"></script>
 </body>

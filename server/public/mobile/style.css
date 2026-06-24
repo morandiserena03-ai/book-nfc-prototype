@@ -123,11 +123,12 @@ body.loading .mobileNav{
 
     color:white;
 
-    font-family:"PP Monument Wide", sans-serif;
+    font-family:"PP Registration Extended", "PP Monument Wide", sans-serif;
 
-    font-size:clamp(2.75rem, 12vw, 3.4rem);
+    font-size:clamp(1.91rem, 8.4vw, 2.56rem);
+    font-weight:900;
 
-    line-height:0.9;
+    line-height:1.15;
 
     letter-spacing:0;
 }
@@ -151,12 +152,12 @@ body.loading .mobileNav{
     body.registrationView .title{
         top:39px;
         left:calc(var(--app-left) + 27px);
-        width:min(340px, calc(var(--app-width) - 54px));
+        width:calc(var(--app-width) - 54px);
         color:#ffffff;
         font-family:"PP Registration Extended", "PP Monument Wide", sans-serif;
-        font-size:clamp(1.72rem, 7.6vw, 1.95rem);
+        font-size:clamp(1.14rem, 5.3vw, 1.37rem);
         font-weight:900;
-        line-height:0.92;
+        line-height:1.3225;
     }
 
     body.registrationView #userRow,
@@ -165,7 +166,7 @@ body.loading .mobileNav{
     }
 
     body.registrationView #registerBox{
-        top:128px;
+        top:118px;
         bottom:45px;
         left:calc(var(--app-left) + 28px);
         width:calc(var(--app-width) - 56px);
@@ -220,7 +221,7 @@ body.loading .mobileNav{
 
     position:absolute;
 
-    top:165px;
+    top:115px;
     left:calc(var(--app-left) + var(--side-padding));
     width:calc(var(--app-width) - (var(--side-padding) * 2));
 

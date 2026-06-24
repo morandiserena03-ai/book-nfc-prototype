@@ -15,16 +15,31 @@
 </head>
 <body>
 
-    <header class="desktopHeader">
+    <button id="backButton" class="back-button" type="button" aria-label="Torna indietro"></button>
+
+    <header class="desktopHeader desktopHeaderDrawer">
         <a class="brandLink" href="/mobile" aria-label="Book Pride">
             <img src="/Icons/BookPride.png" alt="Book Pride">
         </a>
 
-        <nav class="desktopNav" aria-label="Navigazione principale">
+        <button
+            class="desktopMenuButton"
+            type="button"
+            aria-label="Apri menu"
+            aria-controls="desktopMenu"
+            aria-expanded="false">
+            <img src="/Icons/burger-bar.png" alt="">
+        </button>
+
+        <nav
+            id="desktopMenu"
+            class="desktopNav desktopMenuPanel"
+            aria-label="Navigazione principale"
+            aria-hidden="true">
             <a href="/dashboard">Dashboard</a>
             <a href="/mobile">Mobile</a>
-            <a href="/centro">Centro</a>
-            <a href="/libri">Libri</a>
+            <a href="/centro" aria-current="page">Centro</a>
+            <a href="/libri">Libreria dell'editore</a>
         </nav>
     </header>
 
@@ -32,7 +47,7 @@
         <a href="/dashboard">Dashboard</a>
         <a href="/mobile">Mobile</a>
         <a href="/centro-mobile" aria-current="page">Centro</a>
-        <a href="/libri">Libri</a>
+        <a href="/libri">Libreria dell'editore</a>
     </nav>
 
     <main class="centerMobilePage">
@@ -42,6 +57,7 @@
     </main>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/shared/nav.js"></script>
     <script src="/centro-mobile/app.js"></script>
 
 </body>

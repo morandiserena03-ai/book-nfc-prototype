@@ -5,34 +5,39 @@
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1">
-    <title>Libri</title>
+    <title>Libreria dell'editore</title>
     <link rel="stylesheet" href="/shared/nav.css">
     <link rel="stylesheet" href="/libri/style.css">
 </head>
-<body>
+<body class="loading">
 
-    <header class="desktopHeader">
-        <a class="brandLink" href="/mobile" aria-label="Book Pride">
-            <img src="/Icons/BookPride.png" alt="Book Pride">
-        </a>
+    <main class="publisherLibrary" aria-live="polite">
+        <header class="libraryHeader">
+            <button id="closeButton" class="iconButton" type="button" aria-label="Chiudi">
+                <span aria-hidden="true"></span>
+            </button>
+            <h1>Adelphi Editore</h1>
+            <span aria-hidden="true"></span>
+        </header>
 
-        <nav class="desktopNav" aria-label="Navigazione principale">
-            <a href="/dashboard">Dashboard</a>
-            <a href="/mobile">Mobile</a>
-            <a href="/centro">Centro</a>
-            <a href="/libri" aria-current="page">Libri</a>
-        </nav>
-    </header>
+        <section class="bookShelf" aria-label="Copertine disponibili">
+            <div id="booksCarousel" class="booksCarousel"></div>
+        </section>
 
-    <nav class="mobileNav mobileNavHomeActions" aria-label="Navigazione mobile">
-        <a href="/centro-mobile">Centro</a>
-        <a href="/libri" aria-current="page">Libri</a>
-    </nav>
-
-    <main class="booksPage">
-        <h1 class="title">Libri</h1>
-        <div id="booksGrid" class="booksGrid" aria-live="polite"></div>
+        <section class="bookDetails" aria-live="polite">
+            <h2 id="selectedBookTitle"></h2>
+            <p id="selectedBookAuthor"></p>
+            <button id="addBookButton" class="addBookButton" type="button">Aggiungi in libreria</button>
+            <p id="libraryMessage" class="libraryMessage"></p>
+        </section>
     </main>
+
+    <div id="feedbackOverlay" class="feedbackOverlay" role="status" aria-live="polite" hidden>
+        <section class="feedbackCard" aria-label="Libro aggiunto alla libreria">
+            <img class="feedbackIcon" src="/Icons/book-added-check.png" alt="">
+            <p class="feedbackTitle">Libro aggiunto alla libreria</p>
+        </section>
+    </div>
 
     <script src="/libri/app.js"></script>
 
