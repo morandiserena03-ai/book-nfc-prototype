@@ -253,7 +253,7 @@ button{
     display:grid;
     place-items:center;
     padding:max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
-    background:rgba(5, 5, 62, 0.18);
+    background:var(--page-blue);
     pointer-events:all;
 }
 
@@ -265,11 +265,10 @@ button{
     display:grid;
     place-items:center;
     align-content:center;
-    width:min(100%, 394px);
-    min-height:min(86dvh, 852px);
+    width:min(100%, 430px);
+    min-height:100%;
     padding:48px 28px;
-    border-radius:48px;
-    background:rgba(5, 5, 62, 0.8);
+    background:var(--page-blue);
     color:white;
     text-align:center;
 }
